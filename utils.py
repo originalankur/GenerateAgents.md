@@ -1,0 +1,100 @@
+import os
+import subprocess
+import re
+import logging
+from pathlib import Path
+from typing import Union
+
+TreeType = Union[str, dict[str, 'TreeType']]
+
+def save_agents_to_disk(repo_name: str, agents_content: str, base_dir: str = "projects"):
+    """Saves the generated AGENTS.md into the target directory."""
+    clean_content = re.sub(r"^```(?:markdown)?\s*\n|```\s*$", "", agents_content.strip())
+
+    folder_name = repo_name.lower().replace(' ', '-')
+    target_dir = Path(base_dir) / folder_name
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    file_path = target_dir / "AGENTS.md"
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(clean_content)
+        logging.info(f"✅ Successfully saved AGENTS.md to: {file_path}")
+    except OSError as e:
+        logging.error(f"Failed to save AGENTS.md to {file_path}: {e}")
+
+def load_source_tree(root_dir: str) -> dict[str, TreeType]:
+    """Recursively load the folder into a nested dict."""
+    tree: dict[str, TreeType] = {}
+    
+    allowed_extensions = {
+        '.py', '.js', '.ts', '.jsx', '.tsx', '.vue', '.java', '.md', 
+        '.json', '.yml', '.yaml', '.txt', '.html', '.css', '.scss', '.less',
+        '.c', '.cpp', '.h', '.hpp', '.cs', '.go', '.rb', '.php', 
+        '.rs', '.sh', '.swift', '.kt', '.sql', '.xml', '.toml', '.ini', 
+        '.dart', '.scala', '.r', '.m', '.pl'
+    }
+    
+    for entry in os.listdir(root_dir):
+        # Skip hidden files/directories and common build/cache folders
+        if entry.startswith('.') or entry in ['node_modules', '__pycache__', 'venv', 'env', 'dist', 'build']:
+            continue
+            
+        path = os.path.join(root_dir, entry)
+        if os.path.isdir(path):
+            tree[entry] = load_source_tree(path)
+        else:
+            ext = os.path.splitext(entry)[1].lower()
+            if ext not in allowed_extensions:
+                continue
+                
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    if len(content) < 500000:
+                        tree[entry] = content
+                    else:
+                        logging.warning(f"File {path} skipped due to being too large ({len(content)} chars)")
+            except UnicodeDecodeError:
+                logging.warning(f"File {path} skipped due to encoding issue")
+            except OSError as e:
+                logging.warning(f"File {path} skipped due to OS error: {e}")
+                
+    return tree
+
+def clone_repo(repo_url: str, dest_dir: str):
+    """Clone a public GitHub repo to a destination directory."""
+    logging.info(f"Cloning {repo_url} into {dest_dir}...")
+    try:
+        subprocess.run(["git", "clone", "--depth", "1", repo_url, dest_dir], check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Failed to clone repository: {e.stderr}")
+        raise
+    except FileNotFoundError:
+        logging.error("Git is not installed or not found in system path.")
+        raise
+
+# Ordered mapping from ExtractAgentsSections output field names to display headings
+AGENTS_SECTION_HEADINGS: list[tuple[str, str]] = [
+    ("project_overview", "Project Overview"),
+    ("architecture", "Architecture"),
+    ("code_style", "Code Style"),
+    ("testing_commands", "Testing Commands"),
+    ("testing_guidelines", "Testing Guidelines"),
+    ("dependencies_and_environment", "Dependencies & Environment"),
+    ("pr_and_git_rules", "PR & Git Rules"),
+    ("common_patterns", "Common Patterns"),
+]
+
+def compile_agents_md(sections: dict[str, str], repo_name: str) -> str:
+    """Compile extracted section fields into a complete AGENTS.md document.
+
+    This replaces the former LLM-based CompileAgentsMd signature with a
+    deterministic string template, saving one full LLM call per run.
+    """
+    parts = [f"# AGENTS.md — {repo_name}\n"]
+    for key, heading in AGENTS_SECTION_HEADINGS:
+        content = sections.get(key, "").strip()
+        if content:
+            parts.append(f"## {heading}\n\n{content}\n")
+    return "\n".join(parts)

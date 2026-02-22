@@ -1,0 +1,32 @@
+[project]
+name = "AutogenerateAgentsMD"
+version = "0.1.0"
+description = "Automatically generate AI-agent documentation (AGENTS.md) from any GitHub repository using DSPy and RLM."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "dspy>=3.1",
+    "litellm>=1.80",
+    "python-dotenv>=1.0",
+    "gepa>=0.0.26",
+    "markdown-analysis>=0.1.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-timeout>=2.0",
+]
+
+[project.scripts]
+autogenerateagentsmd = "main:main"
+
+[tool.setuptools]
+py-modules = ["main", "model_config", "signatures", "modules", "utils", "debug_checker"]
+
+[tool.pytest.ini_options]
+markers = [
+    "e2e: End-to-end tests that make real API calls and clone repos (require a valid LLM API key)",
+]
+timeout = 600
