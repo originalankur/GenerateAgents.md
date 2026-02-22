@@ -26,9 +26,6 @@ PROVIDER_OPENAI = "openai"
 # ---------------------------------------------------------------------------
 MODEL_CATALOG: dict[str, dict] = {
     # ── Gemini ──────────────────────────────────────────────────────────
-    "gemini/gemini-3.1-pro":       {"provider": PROVIDER_GEMINI,    "tier": "primary",   "max_tokens": 2_000_000},
-    "gemini/gemini-3.1-flash":     {"provider": PROVIDER_GEMINI,    "tier": "mini",      "max_tokens": 1_000_000},
-    "gemini/gemini-3-deep-think":  {"provider": PROVIDER_GEMINI,    "tier": "primary",   "max_tokens": 1_000_000},
     "gemini/gemini-2.5-pro":       {"provider": PROVIDER_GEMINI,    "tier": "primary",   "max_tokens": 1_000_000},
     "gemini/gemini-2.5-flash":     {"provider": PROVIDER_GEMINI,    "tier": "mini",      "max_tokens": 25_000},
     # ── Anthropic ───────────────────────────────────────────────────────
@@ -45,7 +42,7 @@ MODEL_CATALOG: dict[str, dict] = {
 
 # Default model per provider (used when only a provider name is given)
 DEFAULT_MODELS: dict[str, str] = {
-    PROVIDER_GEMINI:    "gemini/gemini-3.1-pro",
+    PROVIDER_GEMINI:    "gemini/gemini-2.5-pro",
     PROVIDER_ANTHROPIC: "anthropic/claude-sonnet-4.6",
     PROVIDER_OPENAI:    "openai/gpt-5.2",
 }
@@ -53,7 +50,7 @@ DEFAULT_MODELS: dict[str, str] = {
 # Default mini model per provider (used as the sub-LM for RLM calls)
 # Forced by user to use the primary (pro) models for all work
 DEFAULT_MINI_MODELS: dict[str, str] = {
-    PROVIDER_GEMINI:    "gemini/gemini-3.1-pro",
+    PROVIDER_GEMINI:    "gemini/gemini-2.5-flash",
     PROVIDER_ANTHROPIC: "anthropic/claude-sonnet-4.6",
     PROVIDER_OPENAI:    "openai/gpt-5.2",
 }

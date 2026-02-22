@@ -1,8 +1,8 @@
-# 🤖 AutogenerateAgentsMD
+# 🤖 GenerateAgents.md
 
 **Automatically generate Agents.md for any GitHub repository. Long context enabled using dspy.RLM aka Recursive Language Models.**
 
-AutogenerateAgentsMD clones any GitHub repository, analyzes its codebase using dspy.RLM (Recursive Language Model), and produces Agents.md ([`AGENTS.md`](https://agents.md)). It supports **Gemini**, **Anthropic (Claude)**, and **OpenAI** models out of the box.
+GenerateAgents.md clones any GitHub repository, analyzes its codebase using dspy.RLM (Recursive Language Model), and produces Agents.md ([`AGENTS.md`](https://agents.md)). It supports **Gemini**, **Anthropic (Claude)**, and **OpenAI** models out of the box.
 
 ---
 
@@ -11,8 +11,8 @@ AutogenerateAgentsMD clones any GitHub repository, analyzes its codebase using d
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-org/AutogenerateAgentsMD.git
-cd AutogenerateAgentsMD
+git clone https://github.com/originalankur/GenerateAgents.md
+cd GenerateAgents.md
 uv sync --extra dev     # installs all deps + dev tools in one step
 ```
 
@@ -25,7 +25,7 @@ Copy the sample env file and fill in the key for your chosen provider:
 ```bash
 cp .env.sample .env
 ```
-*(Make sure the `.env` file sits directly in the root directory of the project, i.e., `AutogenerateAgentsMD/.env`)*
+*(Make sure the `.env` file sits directly in the root directory of the project, i.e., `GenerateAgents.md/.env`)*
 
 You only need **one** provider key — whichever model you select:
 
@@ -38,7 +38,7 @@ You only need **one** provider key — whichever model you select:
 ### 3. Run
 
 ```bash
-# Default — generates AGENTS.md for the repo (Gemini 3.1 Pro)
+# Default — generates AGENTS.md for the repo (Gemini 2.5 Pro)
 uv run autogenerateagentsmd https://github.com/pallets/flask
 
 # Choose a specific model
@@ -50,9 +50,6 @@ uv run autogenerateagentsmd https://github.com/pallets/flask --model anthropic
 
 # List all supported models
 uv run autogenerateagentsmd --list-models
-
-# Via environment variable
-GITHUB_REPO_URL=https://github.com/pallets/flask uv run autogenerateagentsmd
 
 # Interactive prompt (just run without arguments)
 uv run autogenerateagentsmd
@@ -72,7 +69,7 @@ The generated file will be saved under the `projects/` directory using the repos
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
-│                     AutogenerateAgentsMD Pipeline                │
+│                     GenerateAgents Pipeline                │
 │                                                                  │
 │  GitHub Repo URL                                                 │
 │       │                                                          │
@@ -123,7 +120,7 @@ The generated file will be saved under the `projects/` directory using the repos
 ## 📁 Project Structure
 
 ```text
-AutogenerateAgentsMD/
+GenerateAgents/
 ├── src/
 │   └── autogenerateagentsmd/    # Core package directory
 │       ├── cli.py               # CLI entry point — orchestrates the analysis pipeline
