@@ -62,13 +62,21 @@ class ExtractAgentsSections(dspy.Signature):
     repository_name = dspy.InputField(desc="The name of the repository or project.")
 
     project_overview = dspy.OutputField(desc="Brief description of the project: what it does, its tech stack, primary language, and purpose. 2-4 sentences.")
+    tech_stack = dspy.OutputField(desc="Explicit list of supported languages, frameworks, and tools used in the repository.")
     architecture = dspy.OutputField(desc="High-level map of where things live: directory layout, key modules, entry points, and their responsibilities. Use bullet points with file paths.")
     code_style = dspy.OutputField(desc="Specific coding standards observed: language version, formatting, naming conventions, import ordering, type-hinting rules, preferred patterns vs anti-patterns. Use concrete examples from the codebase. All code blocks must be properly opened AND closed with triple backticks.")
+    anti_patterns_and_restrictions = dspy.OutputField(desc="Specific anti-patterns and 'NEVER do this' rules the AI must strictly avoid.")
+    database_and_state = dspy.OutputField(desc="Guidelines on how data and state should flow through the application, including databases or state managers.")
+    error_handling_and_logging = dspy.OutputField(desc="Conventions for handling exceptions and formatting logs, highlighting any specific utilities to use.")
     testing_commands = dspy.OutputField(desc="Exact CLI commands to build, lint, test, and run the project. Include per-file test commands if available. Format as a bullet list of runnable commands. All code blocks must be properly opened AND closed with triple backticks.")
     testing_guidelines = dspy.OutputField(desc="How tests should be written in this project: framework used, file placement conventions, naming patterns, mocking strategies, and coverage expectations. All code blocks must be properly opened AND closed with triple backticks.")
+    security_and_compliance = dspy.OutputField(desc="Strict security guardrails, such as rules against exposing secrets or logging PII.")
     dependencies_and_environment = dspy.OutputField(desc="How to install dependencies, required environment variables, external service setup, and supported runtime versions.")
     pr_and_git_rules = dspy.OutputField(desc="Commit message format, branch naming conventions, required checks before merging, and any PR review policies observed in the codebase.")
+    documentation_standards = dspy.OutputField(desc="Standards for writing docstrings, comments, and updating system/user documentation.")
     common_patterns = dspy.OutputField(desc="Recurring design patterns, error handling idioms, logging conventions, and strict 'ALWAYS do X / NEVER do Y' rules observed across the codebase. All code blocks must be properly opened AND closed with triple backticks.")
+    agent_workflow = dspy.OutputField(desc="Standard Operating Procedure (SOP) for how the AI should approach generic or specific tasks in this codebase.")
+    few_shot_examples = dspy.OutputField(desc="Concrete 'Good' vs 'Bad' code snippets to perfectly align the agent via demonstration. All code blocks must be properly opened AND closed with triple backticks.")
 
 
 

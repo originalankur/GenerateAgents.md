@@ -77,13 +77,22 @@ def clone_repo(repo_url: str, dest_dir: str):
 # Ordered mapping from ExtractAgentsSections output field names to display headings
 AGENTS_SECTION_HEADINGS: list[tuple[str, str]] = [
     ("project_overview", "Project Overview"),
+    ("agent_persona", "Agent Persona"),
+    ("tech_stack", "Tech Stack"),
     ("architecture", "Architecture"),
     ("code_style", "Code Style"),
+    ("anti_patterns_and_restrictions", "Anti-Patterns & Restrictions"),
+    ("database_and_state", "Database & State Management"),
+    ("error_handling_and_logging", "Error Handling & Logging"),
     ("testing_commands", "Testing Commands"),
     ("testing_guidelines", "Testing Guidelines"),
+    ("security_and_compliance", "Security & Compliance"),
     ("dependencies_and_environment", "Dependencies & Environment"),
     ("pr_and_git_rules", "PR & Git Rules"),
+    ("documentation_standards", "Documentation Standards"),
     ("common_patterns", "Common Patterns"),
+    ("agent_workflow", "Agent Workflow / SOP"),
+    ("few_shot_examples", "Few-Shot Examples"),
 ]
 
 def compile_agents_md(sections: dict[str, str], repo_name: str) -> str:

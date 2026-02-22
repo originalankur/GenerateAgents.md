@@ -1,10 +1,8 @@
-# 🤖 AutoSkillAgent
+# 🤖 AutogenerateAgentsMD
 
 > **Automatically generate AI-agent documentation from any GitHub repository.**
 
-AutoSkillAgent is a DSPy-powered pipeline that clones a public GitHub repository, analyzes its codebase using [Reasoned Language Modeling (RLM)](https://dspy.ai), and produces AI-agent-ready documentation. Each run generates **one** output file, controlled by the `--type` flag. It supports **Gemini**, **Anthropic (Claude)**, and **OpenAI** models out of the box:
-
-| **`AGENTS.md`** | `--type agents` *(default)* | Vendor-neutral AI agent instructions | [AGENTS.md open standard](https://agents.md) |
+AutogenerateAgentsMD is a [DSPy](https://dspy.ai)-powered pipeline that clones a public GitHub repository, analyzes its codebase using Reasoned Language Modeling (RLM), and produces AI-agent-ready documentation ([`AGENTS.md`](https://agents.md)). It supports **Gemini**, **Anthropic (Claude)**, and **OpenAI** models out of the box.
 
 ---
 
@@ -13,12 +11,12 @@ AutoSkillAgent is a DSPy-powered pipeline that clones a public GitHub repository
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-org/AutoSkillAgent.git
-cd AutoSkillAgent
+git clone https://github.com/your-org/AutogenerateAgentsMD.git
+cd AutogenerateAgentsMD
 uv sync --extra dev     # installs all deps + dev tools in one step
 ```
 
-> 💡 Don't have uv? Install it with `curl -LsSf https://astral.sh/uv/install.sh | sh` or see [uv docs](https://docs.astral.sh/uv/).
+> 💡 Don't have `uv`? Install it with `curl -LsSf https://astral.sh/uv/install.sh | sh` or see [uv docs](https://docs.astral.sh/uv/).
 
 ### 2. Set Your API Key
 
@@ -39,7 +37,7 @@ You only need **one** provider key — whichever model you select:
 ### 3. Run
 
 ```bash
-# Default — generates AGENTS.md (Gemini 2.5 Pro)
+# Default — generates AGENTS.md for the repo (Gemini 2.5 Pro)
 uv run autogenerateagentsmd https://github.com/pallets/flask
 
 # Choose a specific model
@@ -61,17 +59,19 @@ uv run autogenerateagentsmd
 
 ### 4. Find Your Output
 
-| Flag | File | Location |
-|---|---|---|
-| `--type agents` *(default)* | `AGENTS.md` | `./AGENTS.md` |
+The generated file will be saved under the `projects/` directory using the repository name.
+
+| Output | Location |
+|---|---|
+| `AGENTS.md` | `./projects/<repo-name>/AGENTS.md` |
 
 ---
 
 ## ✨ How It Works
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────┐
-│                     AutoSkillAgent Pipeline                      │
+│                     AutogenerateAgentsMD Pipeline                │
 │                                                                  │
 │  GitHub Repo URL                                                 │
 │       │                                                          │
@@ -79,73 +79,66 @@ uv run autogenerateagentsmd
 │  ┌──────────┐    ┌──────────────────────────────────────────┐    │
 │  │  Clone   │───▶│  Load Source Tree (nested dict)          │    │
 │  │ (git)    │    └────────────────┬─────────────────────────┘    │
-│  └──────────┘                    │                               │
-│                                  ▼                               │
-│              ┌───────────────────────────────────┐               │
-│              │   RLM Analysis (3 parallel passes) │               │
-│              │                                   │               │
-│              │  ┌─────────────────────────────┐  │               │
-│              │  │ ExtractArchitecture (RLM)    │  │               │
-│              │  │ ExtractDataFlow (RLM)        │  │               │
-│              │  │ ExtractConventions (RLM)     │  │               │
-│              │  └──────────────┬──────────────┘  │               │
-│              └─────────────────┼──────────────────┘               │
-│                                ▼                                 │
-│              ┌─────────────────────────────────┐                 │
-│              │  CompileConventionsMarkdown      │                 │
-│              │  (ChainOfThought)                │                 │
-│              └────────────────┬────────────────┘                 │
-│                               │                                  │
-│                    ┌──────────┴──────────┐                       │
-│                    │   --type agents      │                       │
-│             ┌──────┴──────┐       ┌──────┴──────┐                │
-│             ▼             │       │             ▼                │
-│                           │       │                              │
-│                           │       │                              │
-│                           │       │             ▼                │
-│                           │       │  ┌─────────────────────┐     │
-│                           │       │  │ ExtractAgentsSections│     │
-│                           │       │  │ (8 output fields)   │     │
-│                           │       │  └─────────┬───────────┘     │
-│                           │       │            ▼                │
-│                           │       │  compile_agents_md()         │
-│                           │       │  (Python template)           │
-│                           │       │            ▼                │
-│                           │       │       AGENTS.md             │
+│  └──────────┘                     │                              │
+│                                   ▼                              │
+│              ┌──────────────────────────────────────────┐        │
+│              │        CodebaseConventionExtractor       │        │
+│              │                                          │        │
+│              │  ┌────────────────────────────────────┐  │        │
+│              │  │ ExtractCodebaseInfo (RLM Pass)     │  │        │
+│              │  └─────────────────┬──────────────────┘  │        │
+│              │                    ▼                     │        │
+│              │  ┌────────────────────────────────────┐  │        │
+│              │  │ CompileConventionsMarkdown (CoT)   │  │        │
+│              │  └─────────────────┬──────────────────┘  │        │
+│              └────────────────────┼─────────────────────┘        │
+│                                   ▼                              │
+│              ┌──────────────────────────────────────────┐        │
+│              │             AgentsMdCreator              │        │
+│              │                                          │        │
+│              │  ┌────────────────────────────────────┐  │        │
+│              │  │ ExtractAgentsSections (CoT)        │  │        │
+│              │  │ (Extracts 8 specific sections)     │  │        │
+│              │  └─────────────────┬──────────────────┘  │        │
+│              │                    ▼                     │        │
+│              │  ┌────────────────────────────────────┐  │        │
+│              │  │ compile_agents_md() (Python)       │  │        │
+│              │  │ (Template matching into markdown)  │  │        │
+│              │  └─────────────────┬──────────────────┘  │        │
+│              └────────────────────┼─────────────────────┘        │
+│                                   ▼                              │
+│                     projects/<repo-name>/AGENTS.md               │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Technologies
 
 - **[DSPy](https://dspy.ai)** — Declarative framework for programming language models
-- **[RLM (Reasoned Language Model)](https://dspy.ai)** — DSPy's agentic reasoning primitive that iterates through code, writing and executing Python snippets to explore the source tree before concluding
-- **Multi-Provider LLM Support** — Gemini, Anthropic (Claude), and OpenAI models, selectable via `--model` flag
+- **[RLM (Reasoned Language Model)](https://dspy.ai)** — DSPy's agentic reasoning primitive that iterates through the codebase tree via language model interaction.
+- **Multi-Provider LLM Support** — Gemini, Anthropic (Claude), and OpenAI models are natively supported via the `--model` flag.
 
 ---
 
 ## 📁 Project Structure
 
-```
-AutoSkillAgent/
-├── main.py              # Entry point — orchestrates the 4-step pipeline
-├── model_config.py      # Provider registry, model catalog, CLI args
+```text
+AutogenerateAgentsMD/
+├── main.py              # CLI entry point — orchestrates the analysis pipeline
+├── model_config.py      # Provider registry, model catalog, and CLI argument parsing
 ├── signatures.py        # DSPy Signatures (LM task definitions)
-│   ├── ExtractArchitecture      # RLM: repo structure & frameworks
-│   ├── ExtractDataFlow          # RLM: design patterns & data flow
-│   ├── ExtractConventions       # RLM: coding standards & naming
-│   ├── CompileConventionsMarkdown  # CoT: merge 3 analyses → markdown
-│   └── ExtractAgentsSections    # CoT: conventions → 8 structured fields
+│   ├── ExtractCodebaseInfo        # RLM: Extracts comprehensive codebase properties
+│   ├── CompileConventionsMarkdown # CoT: Compiles RLM output into markdown
+│   └── ExtractAgentsSections      # CoT: Translates conventions -> 8 AGENTS.md fields
 ├── modules.py           # DSPy Modules (pipeline components)
-│   ├── CodebaseConventionExtractor  # Runs 3 RLM passes + compilation
-│   └── AgentsMdCreator              # 2-stage AGENTS.md generation
+│   ├── CodebaseConventionExtractor  # Performs RLM extraction & markdown compilation
+│   └── AgentsMdCreator              # Splits info & formats final AGENTS.md text
 ├── utils.py             # Utility functions
 │   ├── clone_repo()              # Shallow git clone
-│   ├── load_source_tree()        # Recursive dir → nested dict
-│   ├── compile_agents_md()       # Template: 8 fields → AGENTS.md
-│   └── save_agents_to_disk()     # Save AGENTS.md
+│   ├── load_source_tree()        # Recursively map directories to a nested dict
+│   ├── compile_agents_md()       # Combines the 8 extracted fields into AGENTS.md
+│   └── save_agents_to_disk()     # Saves output to `projects/<repo_name>/`
 ├── tests/
-│   ├── conftest.py               # Shared pytest fixtures (provider-agnostic)
-│   └── test_e2e_pipeline.py      # E2E tests across 3 repos
+│   └── ...                       # Pytest test suite, executing end-to-end tests
 ├── pyproject.toml       # Project metadata, dependencies & tool config
 ├── uv.lock              # Reproducible dependency lock file
 ├── .env.sample          # Template for API keys
@@ -164,12 +157,12 @@ AutoSkillAgent/
 | `GOOGLE_API_KEY` | For Gemini | Alternative Gemini key name |
 | `ANTHROPIC_API_KEY` | For Anthropic | Anthropic Claude API key |
 | `OPENAI_API_KEY` | For OpenAI | OpenAI API key |
-| `AUTOSKILL_MODEL` | No | Default model (avoids `--model` flag) |
-| `GITHUB_REPO_URL` | No | Pre-set repo URL (skips prompt) |
+| `AUTOSKILL_MODEL` | No | Default model string (avoids `--model` flag) |
+| `GITHUB_REPO_URL` | No | Target repository URL (skips prompt) |
 
 ### Supported Models
 
-Each provider has a **primary** model (used for generation) and a **mini** model (used for RLM exploration):
+Each provider has a **primary** model (used for main generation tasks) and a **mini** model (used as a sub-LM for faster RLM exploration):
 
 | Provider | Primary (default) | Mini (sub-LM) |
 |---|---|---|
@@ -177,7 +170,7 @@ Each provider has a **primary** model (used for generation) and a **mini** model
 | Anthropic | `anthropic/claude-sonnet-4-20250514` | `anthropic/claude-haiku-3-20250519` |
 | OpenAI | `openai/gpt-4o` | `openai/gpt-4o-mini` |
 
-Run `uv run autogenerateagentsmd --list-models` for the full catalog.
+Run `uv run autogenerateagentsmd --list-models` for the full catalog of exact model versions supported.
 
 ---
 
@@ -185,10 +178,10 @@ Run `uv run autogenerateagentsmd --list-models` for the full catalog.
 
 ### AGENTS.md
 
-A vendor-neutral, open-standard file for any AI coding agent:
+A vendor-neutral, open-standard file for any AI coding agent. The file is saved at `./projects/<repo-name>/AGENTS.md`.
 
 ```markdown
-# AGENTS.md
+# AGENTS.md — <repo-name>
 ## Project Overview
 ## Architecture
 ## Code Style
@@ -203,36 +196,28 @@ A vendor-neutral, open-standard file for any AI coding agent:
 
 ## 🧪 Testing
 
-The project includes an end-to-end test suite that runs the full pipeline against 3 small, popular open-source repos across different languages:
-
-| Test ID | Repo | Language |
-|---|---|---|
-| `python-markupsafe` | [`pallets/markupsafe`](https://github.com/pallets/markupsafe) | Python |
-| `javascript-p-limit` | [`sindresorhus/p-limit`](https://github.com/sindresorhus/p-limit) | JavaScript |
-| `golang-match` | [`tidwall/match`](https://github.com/tidwall/match) | Go |
+The project includes an end-to-end test suite that typically runs the full pipeline against smaller codebases.
 
 ### Running Tests
 
 ```bash
-# Run all E2E tests (uses AUTOSKILL_MODEL or defaults to Gemini)
+# Run all tests (uses AUTOSKILL_MODEL or defaults to Gemini)
+uv run pytest tests/ -v -s
+
+# Run only E2E tests
 uv run pytest tests/ -v -s -m e2e
 
 # Test with a specific provider
 AUTOSKILL_MODEL=openai/gpt-4o uv run pytest tests/ -v -s -m e2e
 
-# Run a specific repo test
-uv run pytest tests/ -v -s -k "python-markupsafe"
-
-# Run only the fast clone/load tests (no API calls)
+# Run tests involving the generic clone function
 uv run pytest tests/ -v -s -k "test_clone"
 ```
 
-> ⚠️ **Note:** Full pipeline tests make real LLM API calls and each test may take 2-5 minutes. A 10-minute timeout is configured per test.
-
-Generated output files from tests are saved to `tests/output/<repo>/` for inspection.
+> ⚠️ **Note:** Full pipeline tests make real LLM API calls and may take a few minutes. Generated outputs from passing tests might be placed inside output directories. 
 
 ---
 
 ## 📜 License
 
-MIT
+[MIT](LICENSE)
