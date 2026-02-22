@@ -4,7 +4,7 @@ import dspy
 import argparse
 import tempfile
 import logging
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from .modules import CodebaseConventionExtractor, AgentsMdCreator
 from .utils import load_source_tree, clone_repo, save_agents_to_disk
 
@@ -33,8 +33,8 @@ def get_repo_url(args: argparse.Namespace) -> str:
     return repo_url.strip()
 
 def main():
-    # Load environment variables from .env file
-    load_dotenv()
+    # Load environment variables from .env file (searching up from current working dir)
+    load_dotenv(find_dotenv(usecwd=True))
 
     # Parse CLI arguments
     parser = argparse.ArgumentParser(

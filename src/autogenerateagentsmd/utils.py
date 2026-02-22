@@ -34,10 +34,16 @@ def load_source_tree(root_dir: str) -> dict[str, TreeType]:
         '.rs', '.sh', '.swift', '.kt', '.sql', '.xml', '.toml', '.ini', 
         '.dart', '.scala', '.r', '.m', '.pl'
     }
+
+    ignored_dirs = {
+        'node_modules', '__pycache__', 'venv', 'env', 'dist', 'build',
+        'target', 'vendor', 'bin', 'obj', 'out', 'coverage', 'logs',
+        'tmp', 'temp', 'packages', 'pkg'
+    }
     
     for entry in os.listdir(root_dir):
         # Skip hidden files/directories and common build/cache folders
-        if entry.startswith('.') or entry in ['node_modules', '__pycache__', 'venv', 'env', 'dist', 'build']:
+        if entry.startswith('.') or entry in ignored_dirs:
             continue
             
         path = os.path.join(root_dir, entry)

@@ -1,6 +1,6 @@
 # 🤖 AutogenerateAgentsMD
 
-**Automatically generate Agents.md for any GitHub repository by scanning the entire code using dspy.RLM.**
+**Automatically generate Agents.md for any GitHub repository. Long context enabled using dspy.RLM aka Recursive Language Models.**
 
 AutogenerateAgentsMD clones any GitHub repository, analyzes its codebase using dspy.RLM (Recursive Language Model), and produces Agents.md ([`AGENTS.md`](https://agents.md)). It supports **Gemini**, **Anthropic (Claude)**, and **OpenAI** models out of the box.
 
@@ -25,6 +25,7 @@ Copy the sample env file and fill in the key for your chosen provider:
 ```bash
 cp .env.sample .env
 ```
+*(Make sure the `.env` file sits directly in the root directory of the project, i.e., `AutogenerateAgentsMD/.env`)*
 
 You only need **one** provider key — whichever model you select:
 
