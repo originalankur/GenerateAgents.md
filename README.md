@@ -1,8 +1,8 @@
 # 🤖 AutogenerateAgentsMD
 
-> **Automatically generate AI-agent documentation from any GitHub repository.**
+**Automatically generate Agents.md for any GitHub repository by scanning the entire code using dspy.RLM.**
 
-AutogenerateAgentsMD is a [DSPy](https://dspy.ai)-powered pipeline that clones a public GitHub repository, analyzes its codebase using Reasoned Language Modeling (RLM), and produces AI-agent-ready documentation ([`AGENTS.md`](https://agents.md)). It supports **Gemini**, **Anthropic (Claude)**, and **OpenAI** models out of the box.
+AutogenerateAgentsMD clones any GitHub repository, analyzes its codebase using dspy.RLM (Recursive Language Model), and produces Agents.md ([`AGENTS.md`](https://agents.md)). It supports **Gemini**, **Anthropic (Claude)**, and **OpenAI** models out of the box.
 
 ---
 
@@ -37,12 +37,12 @@ You only need **one** provider key — whichever model you select:
 ### 3. Run
 
 ```bash
-# Default — generates AGENTS.md for the repo (Gemini 2.5 Pro)
+# Default — generates AGENTS.md for the repo (Gemini 3.1 Pro)
 uv run autogenerateagentsmd https://github.com/pallets/flask
 
 # Choose a specific model
-uv run autogenerateagentsmd https://github.com/pallets/flask --model anthropic/claude-sonnet-4-20250514
-uv run autogenerateagentsmd https://github.com/pallets/flask --model openai/gpt-4o
+uv run autogenerateagentsmd https://github.com/pallets/flask --model anthropic/claude-sonnet-4.6
+uv run autogenerateagentsmd https://github.com/pallets/flask --model openai/gpt-5.2
 
 # Pass just the provider name to use its default model
 uv run autogenerateagentsmd https://github.com/pallets/flask --model anthropic
@@ -98,7 +98,7 @@ The generated file will be saved under the `projects/` directory using the repos
 │              │                                          │        │
 │              │  ┌────────────────────────────────────┐  │        │
 │              │  │ ExtractAgentsSections (CoT)        │  │        │
-│              │  │ (Extracts 8 specific sections)     │  │        │
+│              │  │ (Extracts 17 specific sections)    │  │        │
 │              │  └─────────────────┬──────────────────┘  │        │
 │              │                    ▼                     │        │
 │              │  ┌────────────────────────────────────┐  │        │
@@ -123,26 +123,28 @@ The generated file will be saved under the `projects/` directory using the repos
 
 ```text
 AutogenerateAgentsMD/
-├── main.py              # CLI entry point — orchestrates the analysis pipeline
-├── model_config.py      # Provider registry, model catalog, and CLI argument parsing
-├── signatures.py        # DSPy Signatures (LM task definitions)
-│   ├── ExtractCodebaseInfo        # RLM: Extracts comprehensive codebase properties
-│   ├── CompileConventionsMarkdown # CoT: Compiles RLM output into markdown
-│   └── ExtractAgentsSections      # CoT: Translates conventions -> 8 AGENTS.md fields
-├── modules.py           # DSPy Modules (pipeline components)
-│   ├── CodebaseConventionExtractor  # Performs RLM extraction & markdown compilation
-│   └── AgentsMdCreator              # Splits info & formats final AGENTS.md text
-├── utils.py             # Utility functions
-│   ├── clone_repo()              # Shallow git clone
-│   ├── load_source_tree()        # Recursively map directories to a nested dict
-│   ├── compile_agents_md()       # Combines the 8 extracted fields into AGENTS.md
-│   └── save_agents_to_disk()     # Saves output to `projects/<repo_name>/`
+├── src/
+│   └── autogenerateagentsmd/    # Core package directory
+│       ├── cli.py               # CLI entry point — orchestrates the analysis pipeline
+│       ├── model_config.py      # Provider registry, model catalog, and CLI argument parsing
+│       ├── signatures.py        # DSPy Signatures (LM task definitions)
+│       │   ├── ExtractCodebaseInfo        # RLM: Extracts comprehensive codebase properties
+│       │   ├── CompileConventionsMarkdown # CoT: Compiles RLM output into markdown
+│       │   └── ExtractAgentsSections      # CoT: Translates conventions -> 17 AGENTS.md fields
+│       ├── modules.py           # DSPy Modules (pipeline components)
+│       │   ├── CodebaseConventionExtractor  # Performs RLM extraction & markdown compilation
+│       │   └── AgentsMdCreator              # Splits info & formats final AGENTS.md text
+│       └── utils.py             # Utility functions
+│           ├── clone_repo()              # Shallow git clone
+│           ├── load_source_tree()        # Recursively map directories to a nested dict
+│           ├── compile_agents_md()       # Combines the 17 extracted fields into AGENTS.md
+│           └── save_agents_to_disk()     # Saves output to `projects/<repo_name>/`
 ├── tests/
-│   └── ...                       # Pytest test suite, executing end-to-end tests
-├── pyproject.toml       # Project metadata, dependencies & tool config
-├── uv.lock              # Reproducible dependency lock file
-├── .env.sample          # Template for API keys
-└── .env                 # Your API keys (not committed)
+│   └── ...                      # Pytest test suite, executing end-to-end tests
+├── pyproject.toml               # Project metadata, dependencies & tool config
+├── uv.lock                      # Reproducible dependency lock file
+├── .env.sample                  # Template for API keys
+└── .env                         # Your API keys (not committed)
 ```
 
 ---
@@ -166,9 +168,9 @@ Each provider has a **primary** model (used for main generation tasks) and a **m
 
 | Provider | Primary (default) | Mini (sub-LM) |
 |---|---|---|
-| Gemini | `gemini/gemini-2.5-pro` | `gemini/gemini-2.5-flash` |
-| Anthropic | `anthropic/claude-sonnet-4-20250514` | `anthropic/claude-haiku-3-20250519` |
-| OpenAI | `openai/gpt-4o` | `openai/gpt-4o-mini` |
+| Gemini | `gemini/gemini-3.1-pro` | `gemini/gemini-3.1-flash` |
+| Anthropic | `anthropic/claude-sonnet-4.6` | `anthropic/claude-haiku-3-20250519` |
+| OpenAI | `openai/gpt-5.2` | `openai/gpt-5.2-instant` |
 
 Run `uv run autogenerateagentsmd --list-models` for the full catalog of exact model versions supported.
 
@@ -183,13 +185,22 @@ A vendor-neutral, open-standard file for any AI coding agent. The file is saved 
 ```markdown
 # AGENTS.md — <repo-name>
 ## Project Overview
+## Agent Persona
+## Tech Stack
 ## Architecture
 ## Code Style
+## Anti-Patterns & Restrictions
+## Database & State Management
+## Error Handling & Logging
 ## Testing Commands
 ## Testing Guidelines
+## Security & Compliance
 ## Dependencies & Environment
 ## PR & Git Rules
+## Documentation Standards
 ## Common Patterns
+## Agent Workflow / SOP
+## Few-Shot Examples
 ```
 
 ---
@@ -208,7 +219,7 @@ uv run pytest tests/ -v -s
 uv run pytest tests/ -v -s -m e2e
 
 # Test with a specific provider
-AUTOSKILL_MODEL=openai/gpt-4o uv run pytest tests/ -v -s -m e2e
+AUTOSKILL_MODEL=openai/gpt-5.2 uv run pytest tests/ -v -s -m e2e
 
 # Run tests involving the generic clone function
 uv run pytest tests/ -v -s -k "test_clone"

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 # Add project root to path so we can import modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from model_config import resolve_model_config
+from autogenerateagentsmd.model_config import resolve_model_config
 
 
 @pytest.fixture(scope="session", autouse=True)

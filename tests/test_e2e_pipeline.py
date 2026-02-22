@@ -16,8 +16,8 @@ import os
 import tempfile
 import pytest
 
-from utils import load_source_tree, clone_repo, save_agents_to_disk
-from modules import CodebaseConventionExtractor, AgentsMdCreator
+from autogenerateagentsmd.utils import load_source_tree, clone_repo, save_agents_to_disk
+from autogenerateagentsmd.modules import CodebaseConventionExtractor, AgentsMdCreator
 
 # Persistent output directory for inspecting generated files
 PERSISTENT_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")

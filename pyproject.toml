@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "AutogenerateAgentsMD"
 version = "0.1.0"
@@ -20,10 +24,10 @@ dev = [
 ]
 
 [project.scripts]
-autogenerateagentsmd = "main:main"
+autogenerateagentsmd = "autogenerateagentsmd.cli:main"
 
-[tool.setuptools]
-py-modules = ["main", "model_config", "signatures", "modules", "utils", "debug_checker"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 markers = [
