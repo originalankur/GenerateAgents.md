@@ -2,338 +2,252 @@
 
 ## Project Overview
 
-DSPy (Declarative Self-improving Python) is a framework for programming Large Language Models (LMs), shifting the focus from hand-crafting prompts to building modular, optimizable AI programs. Written in Python, its purpose is to treat LM pipelines as programs that can be automatically compiled and optimized for maximum performance. The core philosophy is "programming over prompting," using declarative signatures and modular components to build sophisticated systems.
+DSPy is a framework for programming foundation models (LMs), not just prompting them. Its core philosophy is to separate a program's logic from its parameters (like prompts and model weights), enabling a compiler to automatically optimize these parameters for a given metric. The primary language is Python, and the framework is built around three core concepts: declarative `Signatures`, composable `Modules`, and prompt-optimizing `Teleprompters`.
 
 ## Tech Stack
 
-- **Core Language:** Python (>=3.10)
-- **Data Structures & Typing:** `pydantic`
-- **LLM Integration:** `openai`, `litellm`
-- **Optimization:** `optuna`
-- **Performance:** `orjson`, `diskcache`, `numpy`
-- **Asynchronous Operations:** `anyio`, `asyncer`
-- **Serialization:** `cloudpickle`
-- **Development Tools:** `pytest` (testing), `ruff` (linting & formatting)
+- **Language:** Python (`>=3.10`, `<3.15`)
+- **Build System:** `setuptools`
+- **Testing:** `pytest`, `pytest-mock`, `pytest-asyncio`
+- **Linting & Formatting:** `ruff` (managed via `pre-commit`)
+- **Key Libraries:** `litellm`, `datasets`, `pandas`, `optuna`, `langchain_core`
 
 ## Architecture
 
-The repository is organized into a main source directory (`dspy/`), a tests directory (`tests/`), and a documentation directory (`docs/`).
+The project follows a standard Python library structure with a clear separation of concerns. The main logic resides in the `dspy/` directory, with tests mirroring this structure in `tests/`.
 
-*   `dspy/`: The main source code for the framework.
-    *   `dspy/primitives/`: Contains core building blocks like `Module`, `Example`, and `Prediction`.
-    *   `dspy/signatures/`: Handles the logic for `dspy.Signature`, which defines the input/output schema for LM calls.
-    *   `dspy/predict/`: Home to predictors, which are strategies for executing signatures, such as `ChainOfThought` and `ReAct`.
-    *   `dspy/teleprompt/`: Contains the optimization algorithms (Teleprompters) that "compile" DSPy programs.
-    *   `dspy/evaluate/`: Includes logic for evaluation and metrics.
-    *   `dspy/retrievers/`: Provides clients for integrating with external retrieval models like vector databases.
-    *   `dspy/clients/`: Manages clients for various language model APIs.
-*   `tests/`: Contains unit and integration tests, mirroring the `dspy/` directory structure.
-*   `docs/`: Source files for the MkDocs-based documentation website.
-*   `pyproject.toml`: The central configuration file for project metadata, dependencies, and `ruff` formatting rules.
-
-The primary entry points for a user are defining `dspy.Module` subclasses to structure their program and `dspy.Signature` subclasses to declare the behavior of individual LM calls.
+- `pyproject.toml`: The central configuration file for project metadata, dependencies, and `ruff` settings.
+- `dspy/`: The main source code directory.
+  - `dspy/primitives/`: Core data structures and base classes.
+  - `dspy/signatures/`: Logic for defining declarative `Signature` objects, which specify the input/output of LM tasks.
+  - `dspy/predict/`: Contains foundational `Module` building blocks like `dspy.Predict` and `dspy.ChainOfThought`.
+  - `dspy/teleprompt/`: Home of the `Teleprompter` optimizers (e.g., `BootstrapFewShot`) that compile programs.
+  - `dspy/evaluate/`: Tools and metrics for evaluating program performance.
+  - `dspy/retrievers/`: Modules for integrating with various retrieval models.
+  - `dspy/clients/`: Contains clients for interacting with different LM providers (e.g., OpenAI, Anthropic).
+- `tests/`: Contains all tests, mirroring the `dspy/` source directory structure.
+- `docs/`: Project documentation in Markdown format.
 
 ## Code Style
 
-The project uses `ruff` as the single tool for all linting and formatting, with rules configured in `pyproject.toml`.
+Code style is strictly enforced by `ruff` and is non-negotiable, as `pre-commit` hooks will prevent commits that fail checks.
 
-- **Automation:** Pre-commit hooks automatically format code. Ensure they are installed with `pre-commit install`.
-- **Line Length:** Maximum line length is **120 characters**.
-- **Quotes:** Use **double quotes (`"`)** for all strings. Single quotes are not preferred.
-- **Imports:** Imports are sorted automatically by `ruff`. **Relative imports are strictly forbidden** to maintain clarity and avoid ambiguity.
+- **Formatter:** `ruff format` is used for all code formatting.
+- **Linter:** `ruff check` is used for linting.
+- **Configuration:** All rules for `ruff` are defined in `pyproject.toml`.
+- **Imports:** Imports should be ordered and formatted according to `ruff`'s rules.
+- **Naming Conventions:**
+  - Classes should be `PascalCase` (e.g., `BootstrapFewShot`).
+  - Functions and variables should be `snake_case` (e.g., `email_body`).
+- **Signatures:** The core building block of a DSPy program is the `dspy.Signature` class. It uses a declarative, class-based syntax.
 
-**Example of import style (Good):**
 ```python
-# GOOD: Absolute imports
-import dspy
-from dspy.signatures import Signature
-```
-
-**Example of import style (Bad):**
-```python
-# BAD: Relative imports are not allowed
-from . import signatures
+# GOOD: Declarative signature definition
+class EmailClassifier(dspy.Signature):
+    """Classify an email and explain why."""
+    email_body = dspy.InputField()
+    classification = dspy.OutputField(desc="Spam or Not Spam")
+    reason = dspy.OutputField(desc="A short explanation.")
 ```
 
 ## Anti-Patterns & Restrictions
 
-To ensure a smooth and effective contribution process, strictly avoid the following:
-
-- **NEVER** submit large, unsolicited pull requests. Always open an issue to discuss major architectural changes with the core team before implementation.
-- **NEVER** submit code that fails linting checks. All code must conform to `ruff` standards, which are enforced by pre-commit hooks and CI.
-- **NEVER** submit a pull request with failing tests. All relevant tests must pass locally before a PR is opened.
-- **NEVER** merge your own pull requests. Merges are handled by the core team after a thorough review and approval.
-- **NEVER** hardcode prompt templates or instructions inside the `forward` method of a `dspy.Module`. Use `dspy.Signature` to declaratively define the task and let teleprompters optimize the prompt.
+- **NEVER use hardcoded f-string prompts:** The entire philosophy of DSPy is to separate program logic from the prompt's implementation. Prompts are parameters to be learned by a `Teleprompter`. Defining complex, hardcoded f-strings within your modules undermines the framework's purpose.
+- **NEVER create monolithic modules:** Complex tasks should be decomposed into smaller, interconnected `dspy.Module` instances. This promotes reusability, testability, and makes the program's logic easier to understand and optimize.
 
 ## Database & State Management
 
-DSPy programs manage state through `dspy.Module` instances, which hold the optimized "parameters" (prompts, instructions, few-shot examples) learned during the compilation process.
+DSPy manages two primary types of state:
 
-- **State Serialization:**
-    - `module.save()`: Uses `cloudpickle` to serialize the entire program object, including its code and learned parameters. This creates a fully self-contained artifact for deployment.
-    - `module.dump_state()`: Saves only the learned parameters (prompts and signatures). This is a lightweight method for versioning different compiled "weights" that can be loaded into an existing program structure using `module.load_state()`.
+1.  **Program State (Learnable Parameters):** The state of a DSPy program, which includes optimized prompts and few-shot examples, is stored directly within instances of `dspy.Module`. When a `Teleprompter` compiles a module, it modifies its internal state to store the optimized parameters. This is analogous to how a framework like PyTorch stores learned weights in its `nn.Module` layers.
 
-- **Data Handling:**
-    - The primary data object is `dspy.Example`, which structures input/output data. In-memory datasets are handled by `dspy.Dataset`.
-    - DSPy does not interface with traditional SQL/NoSQL databases directly. Instead, it uses a **Retrieval Model (RM)** abstraction via `dspy.Retrieve` to fetch context from external sources, typically vector databases. Implementations for clients like Weaviate are located in `dspy/retrievers/`.
+2.  **Global Configuration:** Global settings, such as the active Language Model (LM) and Retrieval Model (RM), are managed via the singleton `dspy.settings` object. Before executing a program, you must configure the necessary services.
+
+    ```python
+    import dspy
+
+    # Example: Configuring a global LM
+    lm = dspy.OpenAI(model='gpt-3.5-turbo', api_key='...')
+    dspy.settings.configure(lm=lm)
+    ```
+
+There is no central database; state is managed in-memory within these two constructs.
 
 ## Error Handling & Logging
 
-The framework prioritizes clear, actionable error messages to guide developers. It uses custom exceptions to signal specific issues.
+- **Error Handling:** Standard Python exceptions are the primary mechanism for error handling. Use built-in exception types where appropriate. For framework-specific errors, custom exception types may be defined. Use `assert` statements and runtime checks liberally to validate inputs and intermediate states, especially within `Module` forward passes.
 
-- **Custom Exceptions:**
-    - `DSPyAssertionError`: Raised when an internal invariant of the framework is violated, indicating a potential bug or misuse.
-    - `DSPySuggestionError`: A user-facing error that is raised when the framework can identify a common mistake and suggest a specific fix.
-
-- **Philosophy:** The error handling philosophy is to **fail fast and informatively**. Instead of silently failing or having vague `RuntimeError`s, DSPy aims to provide precise feedback that helps the user correct their code.
+- **Logging:** The standard Python `logging` module is used to provide visibility into the framework's operations, which is crucial for debugging the behavior of LMs and the compilation process of `Teleprompters`. Use the logger to trace the flow of data and the decisions made by different components.
 
 ## Testing Commands
 
-To run the test suite, use the following commands from the root of the repository.
-
-- **Run a specific test directory (recommended for development):**
-    ```bash
-    # Using uv
-    uv run pytest tests/predict
-
-    # Using pip/conda
-    pytest tests/predict
-    ```
-
-- **Run the full test suite:**
-    ```bash
-    # Using uv
-    uv run pytest
-
-    # Using pip/conda
-    pytest
-    ```
+- **Run all tests:**
+  ```bash
+  pytest
+  ```
+- **Check for linting errors:**
+  ```bash
+  ruff check .
+  ```
+- **Apply code formatting:**
+  ```bash
+  ruff format .
+  ```
+- **Run all pre-commit checks (including linting and formatting):**
+  ```bash
+  pre-commit run --all-files
+  ```
 
 ## Testing Guidelines
 
-Tests are crucial for maintaining the stability and correctness of the framework.
-
-- **Framework:** All tests are written using `pytest`.
-- **File Location:** Test files are located in the `tests/` directory. The structure of `tests/` mirrors the `dspy/` source directory. For example, tests for `dspy/predict/chain_of_thought.py` should be in `tests/predict/test_chain_of_thought.py`.
-- **Mocking:** External API calls, especially to Language Models (LLMs), must be mocked to ensure tests are fast, deterministic, and do not require API keys.
-    - Use `unittest.mock.patch` to mock external libraries and API clients.
-    - Use the `DummyLM` class for a lightweight, predictable mock of an LM that returns pre-defined outputs.
-- **Parametrization:** Use `pytest.mark.parametrize` extensively to test functions and methods with a diverse range of inputs, including edge cases and invalid arguments.
+- **Framework:** All tests are written using `pytest`. Mocks are handled with `pytest-mock`.
+- **Location:** Tests are located in the top-level `tests/` directory. The file and directory structure within `tests/` must mirror the `dspy/` source directory. For example, tests for `dspy/teleprompt/bootstrap.py` should be in `tests/teleprompt/test_bootstrap.py`.
+- **Requirement:** All new features and bug fixes must be accompanied by new or updated tests.
+- **Test Types:** A combination of unit tests (for individual functions and classes) and integration tests (for interactions between `Modules`, `Signatures`, and `Teleprompters`) is required.
+- **Mocking:** When testing components that interact with external APIs (like LMs), use mocks to avoid making actual network calls. The `dspy.testing.vllm` module or `mocker` fixture from `pytest-mock` can be used for this.
 
 ```python
-# Example of mocking an LM in a test
+# Example test structure in tests/predict/test_predict.py
 import dspy
-from unittest.mock import Mock
+from dspy.predict.predict import Predict
 
-def test_program_with_mock_lm():
-    # Configure a mock LM to return a predictable response
-    mock_lm = Mock()
-    mock_lm.side_effect = ["Mocked LM Answer"]
-    dspy.settings.configure(lm=mock_lm)
-
-    # Now, running your DSPy program will use the mock instead of a real API
-    # ... assert program behavior ...
+def test_predict_initialization():
+    signature = "input -> output"
+    predictor = Predict(signature)
+    assert predictor.signature == dspy.Signature(signature)
 ```
 
 ## Security & Compliance
 
-- **Secrets and API Keys:** Never commit secrets, API keys, or other sensitive credentials to the repository. The `.gitignore` file is configured to prevent common secret files from being staged, but you must remain vigilant. Use environment variables for configuration.
-- **Dependencies:** Keep dependencies current. All dependencies are managed in `pyproject.toml`.
-- **Contributor License Agreement (CLA):** All contributors must sign the CLA before their pull requests can be merged. This is typically handled by a bot during the PR process.
+- **NEVER hardcode API keys or other secrets.** API keys for external services (OpenAI, Cohere, Anthropic, etc.) must be managed through environment variables. The respective client modules (e.g., `dspy.OpenAI`) are designed to read these from the environment.
+- **Prompt Injection:** Be aware that DSPy does not inherently sanitize inputs against prompt injection attacks. This responsibility lies with the application developer building on top of the framework. Treat all user-provided data that is passed to an LM as potentially untrusted.
 
 ## Dependencies & Environment
 
-A Python version of 3.10 or higher is required. The project uses `pyproject.toml` to manage dependencies.
-
-**1. Set up a Virtual Environment:**
-
-- **Using `uv` (Recommended):**
-    ```bash
-    # Create a virtual environment for Python 3.10
-    uv venv --python 3.10
-    ```
-- **Using `conda`:**
-    ```bash
-    conda create -n dspy-dev python=3.10
-    conda activate dspy-dev
-    ```
-
-**2. Install Dependencies:**
-
-- **Using `uv`:**
-    ```bash
-    # Install all core and development dependencies
-    uv sync --extra dev
-    ```
-- **Using `pip`:**
-    ```bash
-    # Install the project in editable mode with dev dependencies
-    pip install -e ".[dev]"
-    ```
-
-**3. Install Pre-Commit Hooks:**
-This step is mandatory to ensure code is automatically formatted on commit.
-```bash
-pre-commit install
-```
+- **Python Version:** Python `>=3.10` and `<3.15` is required.
+- **Installation:** To set up a development environment, clone the repository and run:
+  ```bash
+  git clone https://github.com/stanford-futuredata/dspy.git
+  cd dspy
+  pip install -e '.[dev]'
+  pre-commit install
+  ```
+- **Dependency Management:** Dependencies are defined in `pyproject.toml`.
+  - Core dependencies are in `[project.dependencies]`.
+  - Optional dependencies for development or specific integrations (e.g., `anthropic`, `weaviate`) are in `[project.optional-dependencies]`. Use `pip install -e '.[anthropic,weaviate]'` to install them.
+- **Environment Variables:** For running tests or applications that call external services, you must set the appropriate environment variables. For example, for OpenAI:
+  ```bash
+  export OPENAI_API_KEY="your-api-key-here"
+  ```
 
 ## PR & Git Rules
 
-The project follows a standard GitHub fork-and-pull-request workflow.
-
-- **Branching:**
-    - The `main` branch is the source of truth and should always be stable. All pull requests must target `main`.
-    - Create new branches in your personal fork for any new feature or bug fix.
-    - Use descriptive branch names, e.g., `feat/new-teleprompter` or `fix/react-module-bug`.
-
-- **Pull Requests (PRs):**
-    1.  Fork the repository and create your feature branch from `main`.
-    2.  Make your changes and commit them with clear, descriptive messages.
-    3.  Ensure all tests pass locally (`pytest`).
-    4.  Ensure your code is formatted correctly (pre-commit hooks will handle this).
-    5.  Push your branch to your fork.
-    6.  Open a pull request from your branch to `stanfordnlp/dspy:main`.
-    7.  In the PR description, clearly explain the "what" and "why" of your changes. If it resolves an issue, link to it.
+- **Workflow:** The project uses the fork-and-pull-request model. All changes must be submitted via a PR from your personal fork.
+- **Branching:** Create new branches from the `main` branch for your feature or bugfix.
+- **Pull Requests:**
+  - Keep PRs small and focused on a single issue or feature.
+  - Provide a clear title and a detailed description of the changes.
+  - Ensure all automated checks (linting via `ruff`, tests via `pytest`) are passing before requesting a review. Commits that fail the `pre-commit` hooks will be blocked.
 
 ## Documentation Standards
 
-- **Framework:** The documentation website is built using **MkDocs** with the **Material for MkDocs** theme. Source files are in the `docs/` directory.
-- **API Reference:** The API documentation in `docs/api` is **auto-generated from docstrings** in the Python source code. **Do not edit these markdown files directly.** To update the API reference, you must modify the corresponding docstring in the `.py` file.
-- **Docstring Style:** Follow a clear and concise style for docstrings.
-- **CI Check:** A CI check runs `mkdocs build` on every PR to ensure the documentation builds successfully without any errors or warnings.
-- **Local Preview:** To preview documentation changes locally, navigate to the `docs/` directory and run:
-  ```bash
-  mkdocs serve
-  ```
+- **Docstrings:** All public-facing modules, classes, and functions must have clear, descriptive docstrings. These are used to generate API documentation.
+- **Project Documentation:** The main documentation is written in Markdown and located in the `docs/` directory. When adding a new feature or making a significant change, update the relevant documentation files. The documentation is published at [dspy.ai](https://dspy.ai).
 
 ## Common Patterns
 
-DSPy's architecture is built on a few core design patterns that separate program logic from prompt engineering.
+The most common and critical pattern in DSPy is the **Standard Workflow**, which strictly separates concerns:
 
-**1. The `dspy.Module` (Composite Pattern)**
-A `dspy.Module` is the base class for any program. It acts as a container for other modules (predictors, retrievers) and holds the program's learnable parameters (optimized prompts). Complex systems are built by composing modules inside a parent module.
+1.  **Decompose and Declare with `dspy.Signature`**: ALWAYS start by defining the input/output behavior of a task declaratively. This is the "what".
+    ```python
+    class Summarize(dspy.Signature):
+        """Summarize the given text."""
+        text = dspy.InputField()
+        summary = dspy.OutputField()
+    ```
 
-```python
-import dspy
+2.  **Compose with `dspy.Module`**: Assemble signatures into a program that defines the control flow. This is the "how".
+    ```python
+    class MyProgram(dspy.Module):
+        def __init__(self):
+            super().__init__()
+            self.summarizer = dspy.Predict(Summarize)
 
-class RAG(dspy.Module):
-    """A simple Retrieve-Augment-Generate program."""
-    def __init__(self, num_passages=3):
-        super().__init__()
-        # Compose sub-modules
-        self.retrieve = dspy.Retrieve(k=num_passages)
-        self.generate_answer = dspy.ChainOfThought(GenerateAnswer)
+        def forward(self, document):
+            return self.summarizer(text=document)
+    ```
 
-    def forward(self, question):
-        # Define the data flow between modules
-        context = self.retrieve(question).passages
-        prediction = self.generate_answer(context=context, question=question)
-        return dspy.Prediction(context=context, answer=prediction.answer)
-```
+3.  **Optimize with `dspy.Teleprompter`**: Use a teleprompter to compile the module, optimizing its underlying prompts against a metric and training data. This automates prompt engineering.
 
-**2. The `dspy.Signature` (Declarative Factory)**
-A `dspy.Signature` declaratively defines the inputs and outputs of a single LM call. It uses class attributes and a docstring to specify the task, separating the *what* from the *how*. This allows the framework to automatically generate and optimize the prompt without changing the program's logic.
+    ```python
+    from dspy.teleprompt import BootstrapFewShot
 
-```python
-class GenerateAnswer(dspy.Signature):
-    """Answer questions based on the provided context."""
-    # The docstring becomes the high-level instruction for the LM.
-
-    # InputFields define the inputs to the prompt.
-    context = dspy.InputField(desc="Relevant passages to consider")
-    question = dspy.InputField()
-
-    # OutputFields define the desired outputs to be parsed from the LM.
-    answer = dspy.OutputField(desc="A factual answer, typically 1-2 sentences")
-```
-
-**3. The `Teleprompter` (Strategy Pattern)**
-A `Teleprompter` is an optimization algorithm (a "compiler") that takes a `dspy.Module`, a metric, and training data. It then applies a specific strategy (e.g., `BootstrapFewShot`, `MIPRO`) to tune the prompts and few-shot examples within the module to maximize performance. This pattern encapsulates different optimization techniques.
+    # ... setup lm, metric, and trainset ...
+    optimizer = BootstrapFewShot(metric=metric)
+    compiled_program = optimizer.compile(MyProgram(), trainset=trainset)
+    ```
 
 ## Agent Workflow / SOP
 
-When approaching a task in this codebase, follow this Standard Operating Procedure (SOP):
+When assigned a task, follow this Standard Operating Procedure (SOP):
 
-1.  **Understand the Core Concepts:** Before writing any code, ensure you understand the key abstractions: `dspy.Module` for program structure, `dspy.Signature` for defining LM tasks, and `Teleprompter` for optimization.
-2.  **Find or Create an Issue:** For any non-trivial change (new features, bug fixes), check if an issue already exists. If not, create one to discuss the proposed change with maintainers. This prevents wasted effort.
-3.  **Set Up Your Environment:** Follow the setup instructions: clone your fork, create a virtual environment (`uv venv` or `conda create`), install dependencies (`uv sync --extra dev` or `pip install -e ".[dev]"`), and install pre-commit hooks (`pre-commit install`).
-4.  **Create a Feature Branch:** Create a new, descriptively named branch from `main` in your fork (e.g., `feat/new-retriever-client`).
-5.  **Implement the Changes:**
-    *   Write your code following the established patterns (e.g., if adding a predictor, create a new `dspy.Module`).
-    *   Adhere strictly to the code style (120 char line length, double quotes, no relative imports). The pre-commit hooks will help enforce this.
-    *   Add clear docstrings to new classes and functions.
-6.  **Write or Update Tests:**
-    *   Add new tests for your feature in the corresponding `tests/` directory.
-    *   Ensure all external API calls are mocked.
-    *   Run tests locally (`pytest tests/path/to/your/tests.py`) to confirm they pass.
-7.  **Run All Checks:** Before submitting, run the full test suite (`pytest`) and linters (`ruff check .`, `ruff format .`) to ensure all CI checks will pass.
-8.  **Submit a Pull Request:**
-    *   Push your branch to your fork.
-    *   Open a PR against the `stanfordnlp/dspy:main` branch.
-    *   Write a clear PR description explaining the changes and linking to the relevant issue.
+1.  **Understand the Goal:** Clearly identify the overall objective. What problem is the new or modified DSPy program trying to solve?
+2.  **Decompose the Task:** Break the problem down into logical, sequential, or conditional steps. For example, a question-answering task might be decomposed into "search for context" -> "synthesize answer from context".
+3.  **Define Signatures:** For each step identified, create a declarative `dspy.Signature` class. Define the necessary `InputField`s and `OutputField`s. Write a clear docstring for the signature.
+4.  **Implement the Module:** Create a `dspy.Module` that composes the signatures into a coherent program. In the `__init__`, instantiate the necessary DSPy prediction modules (e.g., `dspy.Predict`, `dspy.ChainOfThought`). In the `forward` method, define the control flow that calls these modules.
+5.  **Write Tests First:** Create a new test file in the `tests/` directory that mirrors the location of your new module. Write a test case that instantiates your module and runs a `forward` pass with mock data. Use `dspy.Example` to structure your test data.
+6.  **Verify and Refine:** Run the tests to ensure your module works as expected. Refine the logic as needed.
+7.  **Run Linters and Formatters:** Before finalizing, run `ruff format .` and `ruff check .` to ensure the code adheres to the project's style guidelines.
+8.  **Finalize:** Once all tests and checks pass, the task is complete. Document your changes clearly in preparation for a pull request.
 
 ## Few-Shot Examples
 
-Here are examples demonstrating the correct and incorrect ways to structure code in DSPy, highlighting the core principle of separating program logic from prompt content.
-
-### Good: Declarative and Modular
-This example correctly uses `dspy.Signature` to define the task declaratively. The `RAG` module's `forward` method only defines the data flow, making it clean, modular, and optimizable by a `Teleprompter`.
+### Good: Using `Signature` and `Module`
+This example correctly separates the task definition (`EmailClassifier` signature) from the program logic (`SpamClassifier` module), allowing a `Teleprompter` to optimize the underlying prompt.
 
 ```python
 import dspy
 
-# --- GOOD ---
+# 1. GOOD: Define the I/O contract declaratively.
+class EmailClassifier(dspy.Signature):
+    """Classify an email and explain why."""
+    email_body = dspy.InputField()
+    classification = dspy.OutputField(desc="Spam or Not Spam")
+    reason = dspy.OutputField(desc="A short explanation.")
 
-# Step 1: Define the signature declaratively.
-# The docstring and field descriptions are used by the framework to build the prompt.
-class Summarize(dspy.Signature):
-    """Summarize the given text in one sentence."""
-    text = dspy.InputField(desc="The input text to summarize.")
-    summary = dspy.OutputField(desc="A single-sentence summary.")
-
-# Step 2: Define the program structure using dspy.Module.
-# The logic is about composing and calling modules, not building prompts.
-class SummarizationModule(dspy.Module):
+# 2. GOOD: Compose the signature into a reusable module.
+class SpamClassifier(dspy.Module):
     def __init__(self):
         super().__init__()
-        # The predictor is configured with the signature, not a prompt string.
-        self.summarizer = dspy.Predict(Summarize)
+        # The logic uses a pre-built module that will be optimized.
+        self.classify = dspy.ChainOfThought(EmailClassifier)
 
-    def forward(self, document_text):
-        # The forward pass is clean data flow.
-        prediction = self.summarizer(text=document_text)
-        return prediction
+    def forward(self, email):
+        return self.classify(email_body=email)
 
-# This module can now be compiled by a Teleprompter to find the best prompt
-# for the Summarize signature without changing any of this code.
+# This structure allows a Teleprompter to optimize the `self.classify` module.
+# optimizer.compile(SpamClassifier(), trainset=...)
 ```
 
-### Bad: Imperative and Hardcoded
-This example violates DSPy's core principles. It hardcodes a prompt string directly within the module's logic. This makes the prompt brittle, difficult to test, and impossible for a `Teleprompter` to optimize automatically.
+### Bad: Hardcoding Prompts in an F-String
+This example violates the core DSPy philosophy by embedding a complex, hardcoded prompt directly into the program logic. This makes it impossible for a `Teleprompter` to automatically optimize the prompt, turning the code into a rigid, non-learnable script.
 
 ```python
-import dspy
+# BAD: Bypassing the Signature/Module system with a hardcoded prompt.
+def classify_email_badly(email_body: str):
+    # This prompt is now static and cannot be optimized by DSPy.
+    prompt = f"""
+    You are an email classification expert.
+    Analyze the following email and determine if it is "Spam" or "Not Spam".
+    Provide a short reason for your classification.
 
-# --- BAD ---
-
-# This module hardcodes a prompt, mixing program logic with prompt engineering.
-class BadSummarizationModule(dspy.Module):
-    def __init__(self):
-        super().__init__()
-        # Using dspy.Predict with a hardcoded signature string is an anti-pattern.
-        # It's better than an f-string, but still not the right way.
-        # The worst way would be to construct an f-string prompt here.
-        self.predictor = dspy.Predict("text -> summary")
-
-    def forward(self, document_text):
-        # Here, the prompt is manually constructed inside the logic.
-        # This is brittle and cannot be optimized by DSPy's compilers.
-        prompt = f"Please summarize the following text in one sentence: {document_text}"
-
-        # This manual call bypasses the optimizable signature system.
-        # (Note: This is a hypothetical example; dspy.settings.lm() is not the public API for this)
-        response = dspy.settings.lm(prompt)
-        return {"summary": response}
-
-# This module is a "black box" to DSPy's optimization tools.
-# Changing the prompt requires changing the Python code.
+    Email: "{email_body}"
+    ---
+    Classification:
+    Reason:
+    """
+    
+    # This is an ad-hoc call to the LM, not part of a learnable DSPy module.
+    # response = dspy.settings.lm(prompt) 
+    # This code is brittle, hard to maintain, and cannot be optimized.
+    return "This approach is incorrect"

@@ -109,14 +109,6 @@ The generated file will be saved under the `projects/` directory using the repos
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-### Key Technologies
-
-- **[DSPy](https://dspy.ai)** — Declarative framework for programming language models
-- **[RLM (Reasoned Language Model)](https://dspy.ai)** — DSPy's agentic reasoning primitive that iterates through the codebase tree via language model interaction.
-- **Multi-Provider LLM Support** — Gemini, Anthropic (Claude), and OpenAI models are natively supported via the `--model` flag.
-
----
-
 ## 📁 Project Structure
 
 ```text
