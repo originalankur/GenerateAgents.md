@@ -63,13 +63,41 @@ The generated file will be saved under the `projects/` directory using the repos
 |---|---|
 | `AGENTS.md` | `./projects/<repo-name>/AGENTS.md` |
 
+
+#### AGENTS.md Output Format
+
+A vendor-neutral, open-standard file for any AI coding agent. The file is saved at `./projects/<repo-name>/AGENTS.md`.
+
+```markdown
+# AGENTS.md — <repo-name>
+## Project Overview
+## Agent Persona
+## Tech Stack
+## Architecture
+## Code Style
+## Anti-Patterns & Restrictions
+## Database & State Management
+## Error Handling & Logging
+## Testing Commands
+## Testing Guidelines
+## Security & Compliance
+## Dependencies & Environment
+## PR & Git Rules
+## Documentation Standards
+## Common Patterns
+## Agent Workflow / SOP
+## Few-Shot Examples
+```
+
 ---
 
-## ✨ How It Works
+## Developer Notes
+
+### ✨ How It Works
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
-│                     GenerateAgents Pipeline                │
+│                     GenerateAgents Pipeline                      │
 │                                                                  │
 │  GitHub Repo URL                                                 │
 │       │                                                          │
@@ -109,7 +137,7 @@ The generated file will be saved under the `projects/` directory using the repos
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-## 📁 Project Structure
+### 📁 Project Structure
 
 ```text
 GenerateAgents/
@@ -139,8 +167,6 @@ GenerateAgents/
 
 ---
 
-## 🔧 Configuration
-
 ### Environment Variables
 
 | Variable | Required | Description |
@@ -158,7 +184,7 @@ Each provider has a **primary** model (used for main generation tasks) and a **m
 
 | Provider | Primary (default) | Mini (sub-LM) |
 |---|---|---|
-| Gemini | `gemini/gemini-3.1-pro` | `gemini/gemini-3.1-flash` |
+| Gemini | `gemini/gemini-2.5-pro` | `gemini/gemini-2.5-flash` |
 | Anthropic | `anthropic/claude-sonnet-4.6` | `anthropic/claude-haiku-3-20250519` |
 | OpenAI | `openai/gpt-5.2` | `openai/gpt-5.2-instant` |
 
@@ -166,40 +192,11 @@ Run `uv run autogenerateagentsmd --list-models` for the full catalog of exact mo
 
 ---
 
-## 📄 Output Formats
-
-### AGENTS.md
-
-A vendor-neutral, open-standard file for any AI coding agent. The file is saved at `./projects/<repo-name>/AGENTS.md`.
-
-```markdown
-# AGENTS.md — <repo-name>
-## Project Overview
-## Agent Persona
-## Tech Stack
-## Architecture
-## Code Style
-## Anti-Patterns & Restrictions
-## Database & State Management
-## Error Handling & Logging
-## Testing Commands
-## Testing Guidelines
-## Security & Compliance
-## Dependencies & Environment
-## PR & Git Rules
-## Documentation Standards
-## Common Patterns
-## Agent Workflow / SOP
-## Few-Shot Examples
-```
-
----
-
-## 🧪 Testing
+### 🧪 Testing
 
 The project includes an end-to-end test suite that typically runs the full pipeline against smaller codebases.
 
-### Running Tests
+#### Running Tests
 
 ```bash
 # Run all tests (uses AUTOSKILL_MODEL or defaults to Gemini)
@@ -218,6 +215,11 @@ uv run pytest tests/ -v -s -k "test_clone"
 > ⚠️ **Note:** Full pipeline tests make real LLM API calls and may take a few minutes. Generated outputs from passing tests might be placed inside output directories. 
 
 ---
+
+## TODO(s)
+
+- [ ] Support Local Repositories
+- [ ] Test approach of providing tools to read_file, list_files, cat, grep and move away from sending the entire codebase to the LLM. 
 
 ## 📜 License
 
