@@ -12,7 +12,7 @@ GenerateAgents.md is a Python tool that automatically creates a comprehensive `A
 *   **Package/Dependency Management:** `uv`
 *   **Utilities:**
     *   `python-dotenv`: For managing environment variables from `.env` files.
-    *   `gepa`: For cloning Git repositories.
+    *   `git`: For cloning Git repositories.
     *   `markdown-analysis`: For post-processing generated markdown.
 
 ## Architecture
