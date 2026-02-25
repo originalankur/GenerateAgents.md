@@ -38,15 +38,18 @@ You only need **one** provider key — whichever model you select:
 ### 3. Run
 
 ```bash
-# Default — generates AGENTS.md for the repo (Gemini 2.5 Pro)
-uv run autogenerateagentsmd https://github.com/pallets/flask
+# Default — generates AGENTS.md for a local repository (Gemini 2.5 Pro)
+uv run autogenerateagentsmd /path/to/local/repo
+
+# Analyze a public github repository using the flag
+uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask
 
 # Choose a specific model
-uv run autogenerateagentsmd https://github.com/pallets/flask --model anthropic/claude-sonnet-4.6
-uv run autogenerateagentsmd https://github.com/pallets/flask --model openai/gpt-5.2
+uv run autogenerateagentsmd /path/to/local/repo --model anthropic/claude-sonnet-4.6
+uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --model openai/gpt-5.2
 
 # Pass just the provider name to use its default model
-uv run autogenerateagentsmd https://github.com/pallets/flask --model anthropic
+uv run autogenerateagentsmd /path/to/local/repo --model anthropic
 
 # List all supported models
 uv run autogenerateagentsmd --list-models
@@ -218,7 +221,7 @@ uv run pytest tests/ -v -s -k "test_clone"
 
 ## TODO(s)
 
-- [ ] Support Local Repositories
+- [x] Support Local Repositories
 - [ ] Test approach of providing tools to read_file, list_files, cat, grep and move away from sending the entire codebase to the LLM. 
 
 ## 📜 License
