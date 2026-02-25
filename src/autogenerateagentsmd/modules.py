@@ -5,16 +5,22 @@ from .signatures import (
     ExtractCodebaseInfo,
     CompileConventionsMarkdown,
     ExtractAgentsSections,
+    ExtractStrictCodebaseInfo,
+    CompileStrictConventionsMarkdown,
+    ExtractStrictAgentsSections,
 )
 from .utils import compile_agents_md
 
 class CodebaseConventionExtractor(dspy.Module):
     """Extracts raw conventions from codebase source tree using RLM."""
-    def __init__(self, lm_mini: Optional[dspy.LM] = None, max_iterations: int = 35):
+    def __init__(self, lm_mini: Optional[dspy.LM] = None, max_iterations: int = 35, style: str = "comprehensive"):
         super().__init__()
-        self.extract_codebase_info = dspy.RLM(ExtractCodebaseInfo, max_iterations=max_iterations, sub_lm=lm_mini, verbose=True)
-        
-        self.compile_md = dspy.ChainOfThought(CompileConventionsMarkdown)
+        if style == "strict":
+            self.extract_codebase_info = dspy.RLM(ExtractStrictCodebaseInfo, max_iterations=max_iterations, sub_lm=lm_mini, verbose=True)
+            self.compile_md = dspy.ChainOfThought(CompileStrictConventionsMarkdown)
+        else:
+            self.extract_codebase_info = dspy.RLM(ExtractCodebaseInfo, max_iterations=max_iterations, sub_lm=lm_mini, verbose=True)
+            self.compile_md = dspy.ChainOfThought(CompileConventionsMarkdown)
 
     def forward(self, source_tree: dict[str, Any]) -> dspy.Prediction:
         logging.info("=> Running RLM for Codebase Analysis on %d file(s)/module(s)...", len(source_tree))
@@ -27,9 +33,13 @@ class CodebaseConventionExtractor(dspy.Module):
 
 class AgentsMdCreator(dspy.Module):
     """Extracts individual sections then compiles them into a vendor-neutral AGENTS.md file."""
-    def __init__(self):
+    def __init__(self, style: str = "comprehensive"):
         super().__init__()
-        self.extract_sections = dspy.ChainOfThought(ExtractAgentsSections)
+        self.style = style
+        if style == "strict":
+            self.extract_sections = dspy.ChainOfThought(ExtractStrictAgentsSections)
+        else:
+            self.extract_sections = dspy.ChainOfThought(ExtractAgentsSections)
 
     def forward(self, conventions_markdown: str, repository_name: str) -> dspy.Prediction:
         logging.info("=> Extracting individual AGENTS.md sections for repository: %s...", repository_name)
@@ -40,7 +50,7 @@ class AgentsMdCreator(dspy.Module):
         
         logging.info("=> Compiling sections into final AGENTS.md for repository: %s...", repository_name)
         sections_dict = {k: v for k, v in sections.items() if k not in ["rationale", "completions"]}
-        agents_md_content = compile_agents_md(sections_dict, repository_name)
+        agents_md_content = compile_agents_md(sections_dict, repository_name, style=self.style)
         
         return dspy.Prediction(agents_md_content=agents_md_content)
 

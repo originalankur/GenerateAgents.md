@@ -56,6 +56,9 @@ uv run autogenerateagentsmd --list-models
 
 # Interactive prompt (just run without arguments)
 uv run autogenerateagentsmd
+
+# Strict Style — Focus purely on strict code constraints, past failures, and repo quirks!
+uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --style strict
 ```
 
 ### 4. Find Your Output
@@ -66,11 +69,18 @@ The generated file will be saved under the `projects/` directory using the repos
 |---|---|
 | `AGENTS.md` | `./projects/<repo-name>/AGENTS.md` |
 
+#### Output Styles
 
-#### AGENTS.md Output Format
+GenerateAgents supports two distinct styles for `AGENTS.md`, each tailored to different AI agent setups. You can toggle between them using the `--style` flag.
 
-A vendor-neutral, open-standard file for any AI coding agent. The file is saved at `./projects/<repo-name>/AGENTS.md`.
+Here are two examples generated for the `flask` repository:
+- **[Strict Style Example](projects/flask/AGENTS_strict.md)** (`--style strict`) - Focuses purely on coding constraints, anti-patterns, and repository quirks.
+- **[Comprehensive Style Example](projects/flask/AGENTS_comprehensive.md)** (`--style comprehensive`) - Includes high-level architectural overviews and explanations alongside constraints.
 
+##### 1. Comprehensive Style (Default)
+This builds a detailed, expansive guide. It extracts high-level abstractions like project architecture, directory mappings, data flow principles, and agent personas. Great for giving a brand-new AI agent a complete tour of the repository.
+
+**Output Format:**
 ```markdown
 # AGENTS.md — <repo-name>
 ## Project Overview
@@ -90,6 +100,20 @@ A vendor-neutral, open-standard file for any AI coding agent. The file is saved 
 ## Common Patterns
 ## Agent Workflow / SOP
 ## Few-Shot Examples
+```
+
+##### 2. Strict Style
+Research suggests that broad, descriptive codebase summaries can sometimes distract LLMs and drive up token costs. The strict style combats this by giving the agent *only* what it can't easily `grep` for itself: strict constraints, undocumented quirks, and things it must *never* do.
+
+**Output Format:**
+```markdown
+# AGENTS.md — <repo-name>
+## Code Style & Strict Rules
+## Anti-Patterns & Restrictions
+## Security & Compliance
+## Lessons Learned (Past Failures)
+## Repository Quirks & Gotchas
+## Execution Commands
 ```
 
 ---
