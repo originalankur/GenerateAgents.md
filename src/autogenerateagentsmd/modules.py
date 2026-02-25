@@ -8,8 +8,19 @@ from .signatures import (
     ExtractStrictCodebaseInfo,
     CompileStrictConventionsMarkdown,
     ExtractStrictAgentsSections,
+    ExtractLessonsLearnt,
 )
 from .utils import compile_agents_md
+
+class AntiPatternExtractor(dspy.Module):
+    """Extracts lessons learned and anti-patterns from git reversion history."""
+    def __init__(self):
+        super().__init__()
+        self.extract_lessons = dspy.ChainOfThought(ExtractLessonsLearnt)
+
+    def forward(self, git_history: str, repository_name: str) -> dspy.Prediction:
+        logging.info("=> Analyzing git history for repository: %s...", repository_name)
+        return self.extract_lessons(git_history=git_history, repository_name=repository_name)
 
 class CodebaseConventionExtractor(dspy.Module):
     """Extracts raw conventions from codebase source tree using RLM."""

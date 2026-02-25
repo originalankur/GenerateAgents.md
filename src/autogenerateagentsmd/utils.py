@@ -80,6 +80,42 @@ def clone_repo(repo_url: str, dest_dir: str):
         logging.error("Git is not installed or not found in system path.")
         raise
 
+def extract_reverted_commits(repo_dir: str, limit: int = 20) -> str:
+    """Extracts git history for reverting commits to deduce past failures."""
+    logging.info(f"Analyzing git history for reverted commits (limit: {limit})...")
+    try:
+        # Run git log fetching the diffs of commits mentioning 'revert'
+        result = subprocess.run(
+            ["git", "log", f"-n {limit}", "--grep=revert", "-i", "--patch"],
+            cwd=repo_dir,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        
+        diff_text = result.stdout
+        
+        # Check context length safely
+        if len(diff_text) > 100000:
+            logging.warning(
+                f"Extracted git history is very large ({len(diff_text)} chars). "
+                "Truncating to 100,000 characters to prevent context window overflow."
+            )
+            diff_text = diff_text[:100000] + "\n... [TRUNCATED DUE TO LENGTH]"
+            
+        if not diff_text.strip():
+            logging.info("No reverted commits found in recent history.")
+            return ""
+            
+        return diff_text
+        
+    except subprocess.CalledProcessError as e:
+        logging.warning(f"Failed to extract git history: {e.stderr}")
+        return ""
+    except FileNotFoundError:
+        logging.warning("Git is not installed/found. Skipping history analysis.")
+        return ""
+
 # Ordered mapping from ExtractAgentsSections output field names to display headings
 AGENTS_SECTION_HEADINGS: list[tuple[str, str]] = [
     ("project_overview", "Project Overview"),

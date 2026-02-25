@@ -59,6 +59,10 @@ uv run autogenerateagentsmd
 
 # Strict Style — Focus purely on strict code constraints, past failures, and repo quirks!
 uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --style strict
+
+# Analyze Git History — Automatically deduce anti-patterns from recently reverted commits
+uv run autogenerateagentsmd /path/to/local/repo --analyze-git-history
+uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --style strict --analyze-git-history
 ```
 
 ### 4. Find Your Output

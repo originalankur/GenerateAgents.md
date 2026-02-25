@@ -118,3 +118,13 @@ class ExtractStrictAgentsSections(dspy.Signature):
     repo_quirks = dspy.OutputField(desc="Non-obvious gotchas and quirks specific to this project.")
     execution_commands = dspy.OutputField(desc="Commands the agent is allowed to execute.")
 
+class ExtractLessonsLearnt(dspy.Signature):
+    """
+    Analyze the recent git history of reverted commits to deduce explicit anti-patterns,
+    failed experiments, and "lessons learned". This prevents the AI from repeating past mistakes.
+    """
+    git_history: str = dspy.InputField(desc="The commit messages and code diffs of recently reverted changes.")
+    repository_name: str = dspy.InputField(desc="The name of the repository.")
+
+    lessons_learned: str = dspy.OutputField(desc="Lessons Learned: Bullet points explaining what approaches failed in the past and why they were reverted.")
+    anti_patterns_and_restrictions: str = dspy.OutputField(desc="Anti-Patterns: Specific coding practices or architectural choices that this codebase strictly rejects based on the reverted history.")
