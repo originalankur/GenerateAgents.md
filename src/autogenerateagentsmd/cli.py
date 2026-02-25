@@ -37,6 +37,12 @@ def parse_arguments():
         "--local-repository",
         help="Absolute path to a local repository to analyze.",
     )
+    parser.add_argument(
+        "--style",
+        choices=["comprehensive", "strict"],
+        default="comprehensive",
+        help="Style of AGENTS.md to generate. 'comprehensive' includes architecture and overviews. 'strict' focuses only on constraints and anti-patterns.",
+    )
     add_model_argument(parser)
     return parser.parse_args()
 
@@ -100,7 +106,7 @@ def setup_language_model(model_arg):
     return lm_mini
 
 
-def run_agents_md_pipeline(repo_dir, repo_name, lm_mini):
+def run_agents_md_pipeline(repo_dir, repo_name, lm_mini, style="comprehensive"):
     """Executes the core pipeline to generate the AGENTS.md document."""
     # Load source tree
     logging.info(f"Loading source tree from {repo_dir}...")
@@ -109,8 +115,8 @@ def run_agents_md_pipeline(repo_dir, repo_name, lm_mini):
         del source_tree['CONTENT']
 
     # Step 1: Extract Conventions
-    logging.info(f"\n[1/3] Scanning codebase tree for '{repo_name}' using RLM...")
-    extractor = CodebaseConventionExtractor(lm_mini=lm_mini)
+    logging.info(f"\n[1/3] Scanning codebase tree for '{repo_name}' using RLM (style: {style})...")
+    extractor = CodebaseConventionExtractor(lm_mini=lm_mini, style=style)
     conventions_result = extractor(source_tree=source_tree)
     
     logging.info("\n--- Extracted Conventions Document ---")
@@ -118,7 +124,7 @@ def run_agents_md_pipeline(repo_dir, repo_name, lm_mini):
 
     # Step 2: Create AGENTS.md
     logging.info("\n[2/3] Generating vendor-neutral AGENTS.md...")
-    agents_creator = AgentsMdCreator()
+    agents_creator = AgentsMdCreator(style=style)
     agents_result = agents_creator(
         conventions_markdown=conventions_result.markdown_document,
         repository_name=repo_name
@@ -143,7 +149,7 @@ def main():
         lm_mini = setup_language_model(args.model)
 
         with get_repository_context(repo_url=repo_url, local_path=local_path) as repo_dir:
-            run_agents_md_pipeline(repo_dir, repo_name, lm_mini)
+            run_agents_md_pipeline(repo_dir, repo_name, lm_mini, style=args.style)
 
     except (FileNotFoundError, RuntimeError) as e:
         logging.error(e)

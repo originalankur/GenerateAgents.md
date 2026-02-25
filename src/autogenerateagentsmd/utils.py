@@ -19,7 +19,7 @@ def save_agents_to_disk(repo_name: str, agents_content: str, base_dir: str = "pr
     try:
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(clean_content)
-        logging.info(f"✅ Successfully saved AGENTS.md to: {file_path}")
+        logging.info(f"Successfully saved AGENTS.md to: {file_path}")
     except OSError as e:
         logging.error(f"Failed to save AGENTS.md to {file_path}: {e}")
 
@@ -101,15 +101,32 @@ AGENTS_SECTION_HEADINGS: list[tuple[str, str]] = [
     ("few_shot_examples", "Few-Shot Examples"),
 ]
 
-def compile_agents_md(sections: dict[str, str], repo_name: str) -> str:
+STRICT_AGENTS_SECTION_HEADINGS: list[tuple[str, str]] = [
+    ("code_style", "Code Style & Strict Rules"),
+    ("anti_patterns_and_restrictions", "Anti-Patterns & Restrictions"),
+    ("security_and_compliance", "Security & Compliance"),
+    ("lessons_learned", "Lessons Learned (Past Failures)"),
+    ("repo_quirks", "Repository Quirks & Gotchas"),
+    ("execution_commands", "Execution Commands"),
+]
+
+def compile_agents_md(sections: dict[str, str], repo_name: str, style: str = "comprehensive") -> str:
     """Compile extracted section fields into a complete AGENTS.md document.
 
     This replaces the former LLM-based CompileAgentsMd signature with a
     deterministic string template, saving one full LLM call per run.
     """
     parts = [f"# AGENTS.md — {repo_name}\n"]
-    for key, heading in AGENTS_SECTION_HEADINGS:
+    headings = STRICT_AGENTS_SECTION_HEADINGS if style == "strict" else AGENTS_SECTION_HEADINGS
+    
+    for key, heading in headings:
         content = sections.get(key, "").strip()
         if content:
             parts.append(f"## {heading}\n\n{content}\n")
-    return "\n".join(parts)
+            
+    # Add length warning for strict mode if too long
+    final_output = "\n".join(parts)
+    if style == "strict" and len(final_output.split()) > 800:
+        logging.warning("AGENTS.md is quite long (over 800 words). Consider trimming to keep AI agents strictly focused on constraints!")
+        
+    return final_output

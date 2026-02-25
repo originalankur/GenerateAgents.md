@@ -80,3 +80,41 @@ class ExtractAgentsSections(dspy.Signature):
 
 
 
+class ExtractStrictCodebaseInfo(dspy.Signature):
+    """DO NOT summarize the application's purpose or architecture. Focus exclusively on strict coding rules, what NOT to do, and undocumented project quirks."""
+    source_tree: dict[str, Any] = dspy.InputField(desc="Nested dictionary representing the codebase directory tree and file contents.")
+    
+    code_style_and_formatting: str = dspy.OutputField(desc="Code Style & Formatting: Strict rules on syntax preferences, naming conventions, and file structures.")
+    anti_patterns_and_restrictions: str = dspy.OutputField(desc="Anti-Patterns & Restrictions: Explicitly lists things the AI must never do.")
+    security_and_compliance: str = dspy.OutputField(desc="Security & Compliance: Sets guardrails to prevent the AI from exposing secrets or writing vulnerable code.")
+    lessons_learned: str = dspy.OutputField(desc="Lessons Learned: Explicitly extract things that have failed in the past.")
+    repo_quirks: str = dspy.OutputField(desc="Repo Quirks: Non-obvious gotchas specific to this codebase that an agent couldn't easily grep.")
+    execution_commands: str = dspy.OutputField(desc="Execution Commands: Exact terminal commands the agent is allowed to run.")
+
+class CompileStrictConventionsMarkdown(dspy.Signature):
+    """Compile distinct constraint analyses into a single, cohesive Markdown document."""
+    code_style_and_formatting = dspy.InputField(desc="Code Style & Formatting.")
+    anti_patterns_and_restrictions = dspy.InputField(desc="Anti-Patterns & Restrictions.")
+    security_and_compliance = dspy.InputField(desc="Security & Compliance.")
+    lessons_learned = dspy.InputField(desc="Lessons Learned.")
+    repo_quirks = dspy.InputField(desc="Repo Quirks.")
+    execution_commands = dspy.InputField(desc="Execution Commands.")
+    
+    markdown_document = dspy.OutputField(desc="Comprehensive constraints document formatted with clear headings and bullet points.")
+
+class ExtractStrictAgentsSections(dspy.Signature):
+    """
+    Extract individual strict AGENTS.md sections from a codebase constraints document.
+    CRITICAL: Every output field MUST be valid Markdown. All fenced code blocks (```) must
+    have both an opening AND a closing triple-backtick line. Never leave a code block unclosed.
+    """
+    conventions_markdown = dspy.InputField(desc="The extracted strict coding constraints and anti-patterns.")
+    repository_name = dspy.InputField(desc="The name of the repository or project.")
+
+    code_style = dspy.OutputField(desc="Specific strict coding standards observed. Use concrete examples.")
+    anti_patterns_and_restrictions = dspy.OutputField(desc="Specific anti-patterns and 'NEVER do this' rules the AI must strictly avoid.")
+    security_and_compliance = dspy.OutputField(desc="Strict security guardrails.")
+    lessons_learned = dspy.OutputField(desc="Lessons learned from past mistakes in the codebase.")
+    repo_quirks = dspy.OutputField(desc="Non-obvious gotchas and quirks specific to this project.")
+    execution_commands = dspy.OutputField(desc="Commands the agent is allowed to execute.")
+
