@@ -1,6 +1,6 @@
 # 🤖 GenerateAgents.md
 
-**Automatically generate Agents.md for any GitHub repository. Long context enabled using dspy.RLM aka Recursive Language Models.**
+**Automatically generate Agents.md for any GitHub / Local Repository. Long context enabled using dspy.RLM aka Recursive Language Models.**
 
 GenerateAgents.md analyzes local or GitHub repositories using Recursive Language Models (dspy.RLM) to produce optimized AGENTS.md files. It features deep codebase exploration, Git history-based anti-pattern deduction, and multiple output styles (Strict vs. Comprehensive) — supporting **Gemini**, **Anthropic (Claude)**, and **OpenAI** models out of the box.
 
