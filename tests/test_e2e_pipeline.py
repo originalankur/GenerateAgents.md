@@ -16,7 +16,7 @@ import os
 import tempfile
 import pytest
 
-from autogenerateagentsmd.utils import load_source_tree, clone_repo, save_agents_to_disk
+from autogenerateagentsmd.utils import load_source_tree, GitClient, save_agents_to_disk
 from autogenerateagentsmd.modules import CodebaseConventionExtractor, AgentsMdCreator
 
 # Persistent output directory for inspecting generated files
@@ -53,7 +53,7 @@ class TestFullPipeline:
     def test_clone_and_load_source_tree(self, repo_url, repo_name):
         """Test that we can clone a repo and load its source tree into a dict."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            clone_repo(repo_url, tmpdir)
+            GitClient.clone_repo(repo_url, tmpdir)
             source_tree = load_source_tree(tmpdir)
 
             assert isinstance(source_tree, dict), "Source tree should be a dict"
@@ -65,7 +65,7 @@ class TestFullPipeline:
         """Test the complete pipeline: extract conventions → generate AGENTS.md → save to disk."""
         # 1. Clone and load
         with tempfile.TemporaryDirectory() as clone_dir:
-            clone_repo(repo_url, clone_dir)
+            GitClient.clone_repo(repo_url, clone_dir)
             source_tree = load_source_tree(clone_dir)
             if 'CONTENT' in source_tree:
                 del source_tree['CONTENT']

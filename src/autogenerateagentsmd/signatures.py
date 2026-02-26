@@ -120,11 +120,13 @@ class ExtractStrictAgentsSections(dspy.Signature):
 
 class ExtractLessonsLearnt(dspy.Signature):
     """
-    Analyze the recent git history of reverted commits to deduce explicit anti-patterns,
-    failed experiments, and "lessons learned". This prevents the AI from repeating past mistakes.
+    Analyze the recent git history of reverted commits and/or a failed Pull Request to deduce 
+    explicit anti-patterns, failed experiments, and "lessons learned". This prevents the AI from 
+    repeating past mistakes.
     """
-    git_history: str = dspy.InputField(desc="The commit messages and code diffs of recently reverted changes.")
+    git_history: str = dspy.InputField(desc="The commit messages and code diffs of recently reverted changes. May be empty.")
+    failed_pr_data: str = dspy.InputField(desc="The title, description, and raw code diff of a failed Pull Request. May be empty.")
     repository_name: str = dspy.InputField(desc="The name of the repository.")
 
-    lessons_learned: str = dspy.OutputField(desc="Lessons Learned: Bullet points explaining what approaches failed in the past and why they were reverted.")
-    anti_patterns_and_restrictions: str = dspy.OutputField(desc="Anti-Patterns: Specific coding practices or architectural choices that this codebase strictly rejects based on the reverted history.")
+    lessons_learned: str = dspy.OutputField(desc="Lessons Learned: Bullet points explaining what approaches failed in the past based on the reverted commits or rejected PR.")
+    anti_patterns_and_restrictions: str = dspy.OutputField(desc="Anti-Patterns: Specific coding practices or architectural choices that this codebase strictly rejects based on the provided history.")

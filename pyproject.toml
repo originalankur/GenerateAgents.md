@@ -15,6 +15,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "gepa>=0.0.26",
     "markdown-analysis>=0.1.5",
+    "markdown-it-py>=3.0.0",
 ]
 
 [project.optional-dependencies]

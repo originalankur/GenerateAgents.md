@@ -3,7 +3,7 @@ import subprocess
 import tempfile
 import pytest
 
-from autogenerateagentsmd.utils import extract_reverted_commits
+from autogenerateagentsmd.utils import GitClient
 from autogenerateagentsmd.modules import AntiPatternExtractor
 
 
@@ -37,7 +37,7 @@ def test_extract_reverted_commits():
         setup_dummy_git_repo(repo_dir)
 
         # Extract history
-        git_history = extract_reverted_commits(repo_dir, limit=10)
+        git_history = GitClient.extract_reverted_commits(repo_dir, limit=10)
         
         # Verify
         assert git_history is not None
@@ -50,10 +50,10 @@ def test_anti_pattern_extractor():
     """Test the AntiPatternExtractor DSPy module natively."""
     with tempfile.TemporaryDirectory() as repo_dir:
         setup_dummy_git_repo(repo_dir)
-        git_history = extract_reverted_commits(repo_dir, limit=10)
+        git_history = GitClient.extract_reverted_commits(repo_dir, limit=10)
 
         extractor = AntiPatternExtractor()
-        result = extractor(git_history=git_history, repository_name="dummy_repo")
+        result = extractor(git_history=git_history, failed_pr_data="", repository_name="dummy_repo")
 
         assert result.anti_patterns_and_restrictions is not None
         assert result.lessons_learned is not None

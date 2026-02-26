@@ -63,6 +63,10 @@ uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask
 # Analyze Git History — Automatically deduce anti-patterns from recently reverted commits
 uv run autogenerateagentsmd /path/to/local/repo --analyze-git-history
 uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --style strict --analyze-git-history
+
+# Analyze Failed PRs — Extract lessons learned from a rejected/closed pull request
+uv run autogenerateagentsmd /path/to/local/repo --failed-pr-url https://github.com/owner/repo/pull/123
+uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --style strict --failed-pr-url https://github.com/pallets/flask/pull/5421
 ```
 
 ### 4. Find Your Output

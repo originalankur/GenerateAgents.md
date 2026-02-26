@@ -5,10 +5,11 @@ import argparse
 import tempfile
 import logging
 import contextlib
+from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
 
 from .modules import CodebaseConventionExtractor, AgentsMdCreator, AntiPatternExtractor
-from .utils import load_source_tree, clone_repo, save_agents_to_disk, extract_reverted_commits
+from .utils import load_source_tree, GitClient, GitHubClient, save_agents_to_disk
 from .model_config import (
     resolve_model_config,
     add_model_argument,
@@ -48,6 +49,10 @@ def parse_arguments():
         action="store_true",
         help="Analyze recent reverted commits to automatically deduce anti-patterns and lessons learned.",
     )
+    parser.add_argument(
+        "--failed-pr-url",
+        help="Analyze a specific failed/closed Pull Request URL to extract anti-patterns and lessons learned.",
+    )
     add_model_argument(parser)
     return parser.parse_args()
 
@@ -85,7 +90,7 @@ def get_repository_context(repo_url=None, local_path=None):
     if repo_url:
         with tempfile.TemporaryDirectory() as temp_repo_dir:
             try:
-                clone_repo(repo_url, temp_repo_dir)
+                GitClient.clone_repo(repo_url, temp_repo_dir)
             except Exception as e:
                 raise RuntimeError("Failed to clone repository.") from e
             yield temp_repo_dir
@@ -111,7 +116,7 @@ def setup_language_model(model_arg):
     return lm_mini
 
 
-def run_agents_md_pipeline(repo_dir, repo_name, lm_mini, style="comprehensive", analyze_git_history=False):
+def run_agents_md_pipeline(repo_dir, repo_name, lm_mini, style="comprehensive", analyze_git_history=False, failed_pr_url=None, existing_content=""):
     """Executes the core pipeline to generate the AGENTS.md document."""
     # Load source tree
     logging.info(f"Loading source tree from {repo_dir}...")
@@ -121,19 +126,27 @@ def run_agents_md_pipeline(repo_dir, repo_name, lm_mini, style="comprehensive", 
 
     git_anti_patterns = ""
     git_lessons = ""
-    if analyze_git_history:
-        git_history = extract_reverted_commits(repo_dir)
-        if git_history:
-            logging.info("\n[0/3] Extracting lessons learned from git history using main LLM...")
-            anti_pattern_extractor = AntiPatternExtractor()
-            git_result = anti_pattern_extractor(git_history=git_history, repository_name=repo_name)
-            git_anti_patterns = git_result.anti_patterns_and_restrictions
-            git_lessons = git_result.lessons_learned
-            logging.info("\n--- Git History Insights ---")
-            logging.info(f"Lessons Learned:\n{git_lessons}")
-            logging.info(f"Anti-Patterns:\n{git_anti_patterns}")
-        else:
-            logging.info("No reverted git history found to analyze.")
+    
+    # Extract data for anti-pattern deduction
+    git_history = GitClient.extract_reverted_commits(repo_dir) if analyze_git_history else ""
+    failed_pr_data = GitHubClient.fetch_pr_data(failed_pr_url) if failed_pr_url else ""
+    
+    if git_history or failed_pr_data:
+        logging.info("\n[0/3] Extracting lessons learned from historical failures using main LLM...")
+        anti_pattern_extractor = AntiPatternExtractor()
+        git_result = anti_pattern_extractor(
+            git_history=git_history, 
+            failed_pr_data=failed_pr_data,
+            repository_name=repo_name
+        )
+        git_anti_patterns = git_result.anti_patterns_and_restrictions
+        git_lessons = git_result.lessons_learned
+        logging.info("\n--- Historical Failures Insights ---")
+        logging.info(f"Lessons Learned:\n{git_lessons}")
+        logging.info(f"Anti-Patterns:\n{git_anti_patterns}")
+    else:
+        if analyze_git_history or failed_pr_url:
+            logging.info("No reverted git history or PR data found to analyze.")
 
     # Step 1: Extract Conventions
     logging.info(f"\n[1/3] Scanning codebase tree for '{repo_name}' using RLM (style: {style})...")
@@ -141,9 +154,9 @@ def run_agents_md_pipeline(repo_dir, repo_name, lm_mini, style="comprehensive", 
     conventions_result = extractor(source_tree=source_tree)
     
     conventions_md = conventions_result.markdown_document
-    # Append git insights to the conventions markdown so it flows into AGENTS.md
-    if analyze_git_history and (git_anti_patterns or git_lessons):
-        conventions_md += f"\n\n## Git History Insights\n\n### Lessons Learned\n{git_lessons}\n\n### Anti-Patterns\n{git_anti_patterns}\n"
+    # Append historic insights to the conventions markdown so it flows into AGENTS.md
+    if (analyze_git_history or failed_pr_url) and (git_anti_patterns or git_lessons):
+        conventions_md += f"\n\n## Historical Failures Insights\n\n### Lessons Learned\n{git_lessons}\n\n### Anti-Patterns\n{git_anti_patterns}\n"
 
     logging.info("\n--- Extracted Conventions Document ---")
     logging.info(conventions_md[:300] + "...\n(Truncated for display)")
@@ -153,7 +166,8 @@ def run_agents_md_pipeline(repo_dir, repo_name, lm_mini, style="comprehensive", 
     agents_creator = AgentsMdCreator(style=style)
     agents_result = agents_creator(
         conventions_markdown=conventions_md,
-        repository_name=repo_name
+        repository_name=repo_name,
+        existing_content=existing_content
     )
 
     # Step 3: Save to Disk
@@ -174,8 +188,28 @@ def main():
         repo_url, local_path, repo_name = resolve_repository_target(args)
         lm_mini = setup_language_model(args.model)
 
+        # Check for existing AGENTS.md
+        existing_content = ""
+        folder_name = repo_name.lower().replace(' ', '-')
+        existing_agents_path = Path("projects") / folder_name / "AGENTS.md"
+        if existing_agents_path.exists():
+            logging.info(f"Found existing AGENTS.md at {existing_agents_path}. Enabling incremental update mode.")
+            try:
+                with open(existing_agents_path, "r", encoding="utf-8") as f:
+                    existing_content = f.read()
+            except Exception as e:
+                logging.warning(f"Could not read existing AGENTS.md: {e}")
+
         with get_repository_context(repo_url=repo_url, local_path=local_path) as repo_dir:
-            run_agents_md_pipeline(repo_dir, repo_name, lm_mini, style=args.style, analyze_git_history=args.analyze_git_history)
+            run_agents_md_pipeline(
+                repo_dir, 
+                repo_name, 
+                lm_mini, 
+                style=args.style, 
+                analyze_git_history=args.analyze_git_history,
+                failed_pr_url=args.failed_pr_url,
+                existing_content=existing_content
+            )
 
     except (FileNotFoundError, RuntimeError) as e:
         logging.error(e)

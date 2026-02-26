@@ -2,103 +2,85 @@
 
 ## Code Style & Strict Rules
 
-Code style is strictly enforced by `ruff`, and its rules are non-negotiable.
+Code style is strictly enforced by `ruff`, and the configuration aims for high consistency and modern Python syntax.
 
-*   **Linter Rules**: The following `ruff` rule sets are enforced. All code must comply with them.
-    *   `B`: `flake8-bugbear` (Finds potential bugs)
-    *   `E`: `pycodestyle` (Errors)
-    *   `F`: `pyflakes` (Undefined names, unused imports)
-    *   `I`: `isort` (Import sorting)
-    *   `UP`: `pyupgrade` (Modernizes Python syntax)
-    *   `W`: `pycodestyle` (Warnings)
-*   **Import Style**: Imports must be written one per line. Grouping imports on a single line is forbidden.
-    *   **Correct:**
+*   **Linter Rules**: A specific set of `ruff` rules are enforced, including:
+    *   `B`: `flake8-bugbear` (Finds potential bugs and design problems)
+    *   `E`/`W`: `pycodestyle` (Enforces style conventions)
+    *   `F`: `pyflakes` (Checks for errors like undefined names)
+    *   `I`: `isort` (Enforces import order)
+    *   `UP`: `pyupgrade` (Automatically upgrades syntax to modern versions)
+
+*   **Import Formatting**: Imports must be one per line. Grouping multiple imports on a single line is forbidden.
+
+    **Correct:**
     ```python
     from flask import Flask
-    from flask import request
+    from flask import jsonify
     ```
-    *   **Incorrect:**
+
+    **Incorrect:**
     ```python
-    from flask import Flask, request
+    from flask import Flask, jsonify
     ```
 
 ## Anti-Patterns & Restrictions
 
-The following patterns are strictly forbidden to maintain code quality, security, and performance.
+The following practices are strictly forbidden to maintain code quality, security, and stability.
 
-*   **NEVER use `app.run()` in production.** This is a development-only server. For production, a proper WSGI server like Gunicorn or uWSGI must be used.
-*   **NEVER wrap the `app` object directly for middleware.** To apply middleware, you MUST assign it to the internal WSGI application.
-    *   **Correct:**
-    ```python
-    app.wsgi_app = MyMiddleware(app.wsgi_app)
-    ```
-    *   **Incorrect:**
-    ```python
-    app = MyMiddleware(app)
-    ```
-*   **NEVER use the session for caching or storing large data.** The session is a small, signed cookie intended only for small identifiers (e.g., `user_id`). Storing large objects will severely degrade performance.
-*   **NEVER use context-dependent functions outside of an active request or application context.** Functions like `url_for()` or the `request` object will fail if called at the global scope. If needed, they must be wrapped in an application context.
-    *   **Correct (within a view):**
-    ```python
-    @app.route('/profile')
-    def profile():
-        user_agent = request.headers.get('User-Agent')
-        return f"Your user agent is: {user_agent}"
-    ```
-    *   **Correct (outside a request, e.g., in a script):**
-    ```python
-    with app.app_context():
-        # url_for() can be used here
-        print(url_for('profile'))
-    ```
-    *   **Incorrect (global scope):**
-    ```python
-    # This will raise a RuntimeError
-    profile_url = url_for('profile')
-    ```
-*   **NEVER call internal methods or attributes.** Anything prefixed with an underscore (e.g., `_find_error_handler`) is considered internal and subject to change without notice. Only use the public, documented API.
+*   **NEVER use `app.run()` in production.** Always use a production-grade WSGI server like Gunicorn.
+*   **NEVER use the session as a general-purpose cache.** It is a small, cookie-based dictionary and should only store minimal data like a user ID. Storing large objects will severely degrade performance.
+*   **NEVER call internal methods or attributes.** Anything prefixed with an underscore (e.g., `_find_error_handler`) is considered private and can change without notice.
+*   **NEVER use context-dependent functions globally without an active context.** Functions like `url_for()` will fail if called outside of a request lifecycle unless a context is manually created with `with app.app_context():`.
+*   **NEVER wrap the `app` object directly to add middleware.** The correct way is to wrap the internal WSGI application: `app.wsgi_app = MyMiddleware(app.wsgi_app)`.
+*   **NEVER submit "drive-by" Pull Requests** for new features without first opening and discussing the proposal in an issue.
+*   **NEVER leave the Pull Request description template empty.** It must be filled out completely, linking to the relevant issue.
+*   **NEVER include personal or feature-specific branch names** in general CI/CD workflow triggers. Configurations must be generic to the main repository.
 
 ## Security & Compliance
 
-All contributions must strictly adhere to the following security and compliance rules.
+All contributions must adhere to these strict security and compliance rules.
 
-*   **License**: All code must be compatible with the **`BSD-3-Clause`** license.
-*   **NEVER set `debug=True` in production.** This is a critical vulnerability that can expose an interactive debugger and allow remote code execution. The `debug` flag must always be `False` in any production environment.
-*   **NEVER store sensitive data in the user session.** Session data is signed but **not encrypted**, meaning it can be decoded and read by the user. Do not store passwords, secrets, or any Personally Identifiable Information (PII) in the session.
-*   **`secret_key` must be secure**: The application's `secret_key` must be a long, random, and confidential string. A compromised `secret_key` allows attackers to forge sessions.
-*   **Always use `send_from_directory` to serve files.** This function is specifically designed to prevent path traversal attacks. Do not manually construct file paths with user-provided input to serve files.
+*   **License:** The project uses the **`BSD-3-Clause`** license. All contributed code must be compatible.
+*   **Production Debug Mode:** The `debug` flag **MUST be `False` in all production environments.** Enabling it exposes an interactive debugger, which is a critical remote code execution vulnerability.
+*   **Session Data:**
+    *   Sessions are **signed but NOT encrypted**. The content is readable by the user.
+    *   **NEVER store sensitive data** (passwords, secrets, personal identifiable information) in the user session.
+    *   The `secret_key` must be a long, unique, and securely stored random string. A compromised key allows attackers to forge session data.
+*   **File Serving:** Always use the `send_from_directory` function to serve files from a directory. This function is hardened against path traversal attacks.
 
 ## Lessons Learned (Past Failures)
 
-The following principles are derived from past experience in maintaining and evolving the framework.
+Based on past experiences, the following processes are mandatory to ensure smooth collaboration and high-quality contributions.
 
-*   **Graceful API Evolution is Crucial**: Instead of making immediate breaking changes, the project uses compatibility wrappers and `DeprecationWarning`. This provides a smoother transition for downstream users and is the required pattern for evolving the public API.
-*   **Proactive Upstream Testing Prevents Breakages**: The `tests-dev` tox environment tests against the `main` branches of core dependencies (Werkzeug, Jinja2, etc.). This practice is essential for detecting and fixing compatibility issues *before* new versions of dependencies are released.
-*   **Separation of Concerns (Sans-IO) Improves Testability**: The core logic is "sans-IO" (agnostic to web protocols) and lives in `src/flask/sansio`. This architectural decision has proven effective for isolating and testing business logic independently from the web layer.
+*   **Proposals must be discussed first:** All new features, architectural changes, and even new CI workflows must be proposed and discussed in an issue *before* a Pull Request is opened. This prevents wasted effort on ideas that may not be accepted.
+*   **Follow contribution templates:** Pull Request description templates are not optional. They must be filled out completely to provide necessary context for reviewers, including a link to the corresponding issue.
+*   **Configuration must be project-specific:** Submitted configurations (e.g., for CI/CD) must be tailored specifically for the `flask` repository. Including irrelevant artifacts, such as personal branch names (e.g., `insecure-code`), will result in the contribution being rejected.
 
 ## Repository Quirks & Gotchas
 
-These are non-obvious characteristics of the Flask repository that are essential to understand for effective development.
+The repository has several unique architectural patterns and development practices that contributors must understand.
 
-*   **"Global" Objects are Context-Locals**: The seemingly global objects like `request`, `g`, and `session` are not true globals. They are thread-safe (or task-safe) proxies that point to the object associated with the current, active request. This is a fundamental concept in Flask.
-*   **Middleware is Applied to `app.wsgi_app`**: You do not wrap the Flask `app` object to apply WSGI middleware. Instead, you wrap the internal `app.wsgi_app` attribute.
-*   **Signals are the Preferred Extension Mechanism**: The preferred way to hook into Flask's internal operations (like `request_started` or `app_context_pushed`) is by using Blinker signals. Avoid monkeypatching framework internals.
-*   **`uv` is used for Fast Dependency Management**: The project uses `uv` as a high-performance dependency resolver and `tox` runner (`tox-uv`). Be aware that this is the primary tool for managing environments, not standard `pip`.
-*   **Dual Architecture (Sans-IO vs. WSGI)**: The codebase is split into two distinct parts: the Sans-IO core in `src/flask/sansio` and the WSGI-specific application layer in `src/flask/app`. Understanding which layer you are working in is critical.
+*   **Sans-IO Architecture:** The core logic is "sans-IO" (agnostic of web protocols) and resides in `src/flask/sansio`. The web-specific WSGI bindings that most users interact with are separate, in `src/flask/app`. This is a fundamental design choice that improves testability.
+*   **Context Locals:** The "global" objects like `request` and `session` are not truly global. They are thread-safe (or task-safe) proxies that point to the object for the currently active request. This avoids the need to pass state through every function call.
+*   **Blinker Signals for Extensibility:** The preferred way to hook into the request lifecycle (e.g., `request_started`) is by using the Blinker signaling library, not by monkeypatching framework internals.
+*   **Fast Tooling (`uv`):** The project uses `uv` for dependency management and as a `tox` runner (`tox-uv`) to accelerate the development and CI feedback loop.
+*   **Forward-Compatibility Testing:** The `tests-dev` `tox` environment specifically tests against the `main` development branches of core dependencies (like Werkzeug and Jinja2) to catch integration issues before they are released.
+*   **Graceful API Evolution:** The project uses compatibility wrappers and raises `DeprecationWarning` to guide users through API changes, avoiding sudden breaking changes.
 
 ## Execution Commands
 
-The agent is permitted to execute the following commands for development, testing, and maintenance.
+The following commands are used for development, testing, and maintenance.
 
 *   **Run development server:**
     ```bash
     flask run
     ```
-*   **Run the full test suite:**
+*   **Run all tests:**
     ```bash
     tox
     ```
-*   **Run tests for a specific Python environment:**
+*   **Run tests for a specific Python version (e.g., 3.12):**
     ```bash
     tox -e py3.12
     ```
@@ -110,11 +92,11 @@ The agent is permitted to execute the following commands for development, testin
     ```bash
     ruff check --fix .
     ```
-*   **Format code:**
+*   **Format all code:**
     ```bash
     ruff format .
     ```
-*   **Build documentation:**
+*   **Build the documentation:**
     ```bash
     tox -e docs
     
