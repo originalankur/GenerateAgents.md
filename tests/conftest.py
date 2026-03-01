@@ -31,21 +31,12 @@ def model_cfg():
 
 
 @pytest.fixture(scope="session")
-def api_key(model_cfg):
-    """Provide the resolved API key."""
-    return model_cfg.api_key
-
-
-@pytest.fixture(scope="session")
 def lm(model_cfg):
     """Provide the primary DSPy language model."""
-    return dspy.LM(model_cfg.model, api_key=model_cfg.api_key, max_tokens=model_cfg.max_tokens)
+    return dspy.LM(model_cfg.model)
 
 
-@pytest.fixture(scope="session")
-def lm_mini(model_cfg):
-    """Provide the secondary (mini) DSPy language model."""
-    return dspy.LM(model_cfg.model_mini, api_key=model_cfg.api_key, max_tokens=model_cfg.max_tokens_mini)
+
 
 
 @pytest.fixture(scope="session", autouse=True)

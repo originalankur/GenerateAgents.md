@@ -102,16 +102,15 @@ def setup_language_model(model_arg):
     """Initializes and configures the language models."""
     logging.info("Initializing DSPy configuration...")
     model_cfg = resolve_model_config(model_arg)
-    logging.info(f"Using model: {model_cfg.model}  (mini: {model_cfg.model_mini})")
+    logging.info(f"Using model: {model_cfg.model}")
 
-    lm = dspy.LM(model_cfg.model, api_key=model_cfg.api_key, max_tokens=model_cfg.max_tokens)
-    lm_mini = dspy.LM(model_cfg.model_mini, api_key=model_cfg.api_key, max_tokens=model_cfg.max_tokens_mini)
+    lm = dspy.LM(model_cfg.model)
         
     dspy.configure(lm=lm)
-    return lm_mini
+    return lm
 
 
-def run_agents_md_pipeline(repo_dir, repo_name, lm_mini, style="comprehensive", analyze_git_history=False):
+def run_agents_md_pipeline(repo_dir, repo_name, lm, style="comprehensive", analyze_git_history=False):
     """Executes the core pipeline to generate the AGENTS.md document."""
     # Load source tree
     logging.info(f"Loading source tree from {repo_dir}...")
@@ -137,7 +136,7 @@ def run_agents_md_pipeline(repo_dir, repo_name, lm_mini, style="comprehensive", 
 
     # Step 1: Extract Conventions
     logging.info(f"\n[1/3] Scanning codebase tree for '{repo_name}' using RLM (style: {style})...")
-    extractor = CodebaseConventionExtractor(lm_mini=lm_mini, style=style)
+    extractor = CodebaseConventionExtractor(lm=lm, style=style)
     conventions_result = extractor(source_tree=source_tree)
     
     conventions_md = conventions_result.markdown_document
@@ -172,10 +171,10 @@ def main():
 
     try:
         repo_url, local_path, repo_name = resolve_repository_target(args)
-        lm_mini = setup_language_model(args.model)
+        lm = setup_language_model(args.model)
 
         with get_repository_context(repo_url=repo_url, local_path=local_path) as repo_dir:
-            run_agents_md_pipeline(repo_dir, repo_name, lm_mini, style=args.style, analyze_git_history=args.analyze_git_history)
+            run_agents_md_pipeline(repo_dir, repo_name, lm, style=args.style, analyze_git_history=args.analyze_git_history)
 
     except (FileNotFoundError, RuntimeError) as e:
         logging.error(e)
