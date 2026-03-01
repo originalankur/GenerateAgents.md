@@ -24,13 +24,13 @@ class AntiPatternExtractor(dspy.Module):
 
 class CodebaseConventionExtractor(dspy.Module):
     """Extracts raw conventions from codebase source tree using RLM."""
-    def __init__(self, lm_mini: Optional[dspy.LM] = None, max_iterations: int = 35, style: str = "comprehensive"):
+    def __init__(self, lm: Optional[dspy.LM] = None, max_iterations: int = 35, style: str = "comprehensive"):
         super().__init__()
         if style == "strict":
-            self.extract_codebase_info = dspy.RLM(ExtractStrictCodebaseInfo, max_iterations=max_iterations, sub_lm=lm_mini, verbose=True)
+            self.extract_codebase_info = dspy.RLM(ExtractStrictCodebaseInfo, max_iterations=max_iterations, sub_lm=lm, verbose=True)
             self.compile_md = dspy.ChainOfThought(CompileStrictConventionsMarkdown)
         else:
-            self.extract_codebase_info = dspy.RLM(ExtractCodebaseInfo, max_iterations=max_iterations, sub_lm=lm_mini, verbose=True)
+            self.extract_codebase_info = dspy.RLM(ExtractCodebaseInfo, max_iterations=max_iterations, sub_lm=lm, verbose=True)
             self.compile_md = dspy.ChainOfThought(CompileConventionsMarkdown)
 
     def forward(self, source_tree: dict[str, Any]) -> dspy.Prediction:

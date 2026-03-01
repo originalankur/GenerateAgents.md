@@ -2,7 +2,7 @@
 
 **Automatically generate Agents.md for any GitHub / Local Repository. Long context enabled using dspy.RLM aka Recursive Language Models.**
 
-GenerateAgents.md analyzes local or GitHub repositories using Recursive Language Models (dspy.RLM) to produce optimized AGENTS.md files. It features deep codebase exploration, Git history-based anti-pattern deduction, and multiple output styles (Strict vs. Comprehensive) — supporting **Gemini**, **Anthropic (Claude)**, and **OpenAI** models out of the box.
+GenerateAgents.md analyzes local or GitHub repositories using Recursive Language Models (dspy.RLM) to produce optimized AGENTS.md files. It features deep codebase exploration, Git history-based anti-pattern deduction, and multiple output styles (Strict vs. Comprehensive). Powered by LiteLLM, it supports **over 100+ LLM providers** (Gemini, Anthropic, OpenAI, Ollama, OpenRouter, etc.) out of the box.
 
 ---
 
@@ -35,6 +35,8 @@ You only need **one** provider key — whichever model you select:
 | Anthropic | `ANTHROPIC_API_KEY` | [Anthropic Console](https://console.anthropic.com/) |
 | OpenAI | `OPENAI_API_KEY` | [OpenAI Platform](https://platform.openai.com/api-keys) |
 
+*Note: You can use **any** of the 100+ providers supported by [LiteLLM](https://docs.litellm.ai/docs/providers) (e.g., `OLLAMA_API_BASE`, `OPENROUTER_API_KEY`) simply by exposing the environment variables LiteLLM expects.*
+
 ### 3. Run
 
 ```bash
@@ -43,20 +45,24 @@ uv run autogenerateagentsmd /path/to/local/repo
 
 # Analyze a public github repository using the flag
 uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask
+```
 
-# Choose a specific model
+#### Using Specific Models
+```bash
+# Choose a specific model (supports ANY model natively supported by LiteLLM)
 uv run autogenerateagentsmd /path/to/local/repo --model anthropic/claude-sonnet-4.6
 uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --model openai/gpt-5.2
+uv run autogenerateagentsmd /path/to/local/repo --model ollama/llama3
 
-# Pass just the provider name to use its default model
+# Pass just a default catalog provider name (gemini, anthropic, openai)
 uv run autogenerateagentsmd /path/to/local/repo --model anthropic
 
-# List all supported models
+# List all supported catalog models
 uv run autogenerateagentsmd --list-models
+```
 
-# Interactive prompt (just run without arguments)
-uv run autogenerateagentsmd
-
+#### Advanced Analysis
+```bash
 # Strict Style — Focus purely on strict code constraints, past failures, and repo quirks!
 uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --style strict
 
@@ -73,7 +79,9 @@ The generated file will be saved under the `projects/` directory using the repos
 |---|---|
 | `AGENTS.md` | `./projects/<repo-name>/AGENTS.md` |
 
-#### Output Styles
+---
+
+## Output Styles
 
 GenerateAgents supports two distinct styles for `AGENTS.md`, each tailored to different AI agent setups. You can toggle between them using the `--style` flag.
 
@@ -202,24 +210,24 @@ GenerateAgents/
 
 | Variable | Required | Description |
 |---|---|---|
-| `GEMINI_API_KEY` | For Gemini | Google Gemini API key |
-| `GOOGLE_API_KEY` | For Gemini | Alternative Gemini key name |
-| `ANTHROPIC_API_KEY` | For Anthropic | Anthropic Claude API key |
-| `OPENAI_API_KEY` | For OpenAI | OpenAI API key |
 | `AUTOSKILL_MODEL` | No | Default model string (avoids `--model` flag) |
 | `GITHUB_REPO_URL` | No | Target repository URL (skips prompt) |
 
 ### Supported Models
 
-Each provider has a **primary** model (used for main generation tasks) and a **mini** model (used as a sub-LM for faster RLM exploration):
+GenerateAgents natively supports **ANY model supported by LiteLLM**! 
 
-| Provider | Primary (default) | Mini (sub-LM) |
-|---|---|---|
-| Gemini | `gemini/gemini-2.5-pro` | `gemini/gemini-2.5-flash` |
-| Anthropic | `anthropic/claude-sonnet-4.6` | `anthropic/claude-haiku-3-20250519` |
-| OpenAI | `openai/gpt-5.2` | `openai/gpt-5.2-instant` |
+**Important:** When passing a model string to the `--model` flag, you *must* explicitly provide it in the format `PROVIDER/MODEL_NAME` (e.g., `ollama/llama3`, `openrouter/anthropic/claude-3-opus`, `openai/gpt-4o`). This ensures LiteLLM appropriately maps the request to the correct provider API. Make sure the corresponding required environment variables are exported.
 
-Run `uv run autogenerateagentsmd --list-models` for the full catalog of exact model versions supported.
+For ease of use, we maintain a "Catalog" of default fallbacks. If you just pass the provider name, these are the models we use by default:
+
+| Provider | Default Model |
+|---|---|
+| Gemini | `gemini/gemini-2.5-pro` |
+| Anthropic | `anthropic/claude-sonnet-4.6` |
+| OpenAI | `openai/gpt-5.2` |
+
+Run `uv run autogenerateagentsmd --list-models` to view our catalog and defaults.
 
 ---
 
@@ -246,11 +254,6 @@ uv run pytest tests/ -v -s -k "test_clone"
 > ⚠️ **Note:** Full pipeline tests make real LLM API calls and may take a few minutes. Generated outputs from passing tests might be placed inside output directories. 
 
 ---
-
-## TODO(s)
-
-- [x] Support Local Repositories
-- [ ] Test approach of providing tools to read_file, list_files, cat, grep and move away from sending the entire codebase to the LLM. 
 
 ## 📜 License
 

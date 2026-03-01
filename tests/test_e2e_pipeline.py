@@ -60,7 +60,7 @@ class TestFullPipeline:
             assert len(source_tree) > 0, f"Source tree for {repo_name} should not be empty"
 
     def test_full_pipeline_generates_agents_md(
-        self, repo_url, repo_name, lm_mini, output_dir
+        self, repo_url, repo_name, lm, output_dir
     ):
         """Test the complete pipeline: extract conventions → generate AGENTS.md → save to disk."""
         # 1. Clone and load
@@ -71,7 +71,7 @@ class TestFullPipeline:
                 del source_tree['CONTENT']
 
         # 2. Extract conventions
-        extractor = CodebaseConventionExtractor(lm_mini=lm_mini)
+        extractor = CodebaseConventionExtractor(lm=lm)
         conventions_result = extractor(source_tree=source_tree)
 
         conventions_md = conventions_result.markdown_document
