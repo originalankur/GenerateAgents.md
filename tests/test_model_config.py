@@ -33,11 +33,10 @@ def test_resolve_model_config_with_provider_string():
     
 def test_resolve_model_config_with_specific_litellm_string():
     """Test resolution passing a specific, non-catalog model string."""
-    test_model = "ollama/llama3"
-    config = resolve_model_config(test_model, api_base="http://localhost:11434", api_key="secret")
+    test_model = "gemini/gemini-2.5-pro"
+    config = resolve_model_config(test_model, api_key="secret")
     # The config should simply echo back the model string since it's passing through to LiteLLM
     assert config.model == test_model
-    assert config.api_base == "http://localhost:11434"
     assert config.api_key == "secret"
 
 def test_list_supported_models():
@@ -63,7 +62,11 @@ def test_add_model_argument():
     args = parser.parse_args(["--list-models"])
     assert args.list_models is True
 
-    # Test api base and api key
-    args = parser.parse_args(["--api-base", "http://localhost:11434", "--api-key", "test-key"])
-    assert args.api_base == "http://localhost:11434"
+    # Test api base and api key (commented out api_base as requested)
+    # args = parser.parse_args(["--api-base", "http://localhost:11434", "--api-key", "test-key"])
+    # assert args.api_base == "http://localhost:11434"
+    # assert args.api_key == "test-key"
+    
+    # Test api key alone
+    args = parser.parse_args(["--api-key", "test-key"])
     assert args.api_key == "test-key"
