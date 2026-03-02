@@ -65,11 +65,19 @@ uv run autogenerateagentsmd --list-models
 ```
 
 #### Advanced Analysis
-```bash
-# Strict Style — Focus purely on strict code constraints, past failures, and repo quirks!
-uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --style strict
 
-# Analyze Git History — Automatically deduce anti-patterns from recently reverted commits
+**1. Strict Style**
+Research suggests that broad, descriptive codebase summaries can sometimes distract LLMs and drive up token costs. The strict style combats this by giving the agent *only* what it can't easily `grep` for itself: strict constraints, undocumented quirks, and things it must *never* do.
+
+```bash
+uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --style strict
+```
+
+**2. Analyze Git History**
+Automatically deduce anti-patterns from recently reverted commits. This powerful feature uses `git log --grep=revert` to inspect the last 20 reverted commits in the repository. It feeds the diffs into a dedicated DSPy module to extract explicit "Lessons Learned" and "Anti-Patterns", ensuring your AI agent avoids making the exact same mistakes previous human developers made.
+
+```bash
+# Works on both local and cloned GitHub repositories
 uv run autogenerateagentsmd /path/to/local/repo --analyze-git-history
 uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --style strict --analyze-git-history
 ```
@@ -240,25 +248,44 @@ Run `uv run autogenerateagentsmd --list-models` to view our catalog and defaults
 
 ### 🧪 Testing
 
-The project includes an end-to-end test suite that typically runs the full pipeline against smaller codebases.
+The project includes a robust test suite covering fast unit tests, git integration tests, and full end-to-end pipeline executions using real LLM API calls.
+
+#### Test Architecture Overview
+
+```text
+tests/
+├── conftest.py                    # Session-scoped fixtures (model setup, DSPy config)
+├── test_cli.py                    # Unit tests for CLI parsing (fully mocked)
+├── test_model_config.py           # Unit tests for model configuration & catalog
+├── test_utils.py                  # Unit tests for utility functions
+├── test_modules.py                # Unit tests for DSPy module initialization
+├── test_analyze_git_history.py    # Integration tests using a temporary local git repo
+├── test_e2e_pipeline.py           # Full end-to-end pipeline tests (real API calls)
+└── output/                        # Persistent output from E2E test runs (ignored in git)
+```
 
 #### Running Tests
 
+Tests use `pytest`. The end-to-end tests require a valid API key configured in `.env` and internet access, as they clone real GitHub repositories and make real LLM calls. The E2E tests are marked with `@pytest.mark.e2e`.
+
 ```bash
-# Run all tests (uses AUTOSKILL_MODEL or defaults to Gemini)
+# Run ALL tests (unit, integration, and E2E)
 uv run pytest tests/ -v -s
 
-# Run only E2E tests
+# Run ONLY E2E tests
 uv run pytest tests/ -v -s -m e2e
 
-# Test with a specific provider
+# Run only unit/integration tests (fast, no API hits required)
+uv run pytest tests/ -v -s -m "not e2e"
+
+# Test with a specific LLM provider for E2E
 AUTOSKILL_MODEL=openai/gpt-5.2 uv run pytest tests/ -v -s -m e2e
 
-# Run tests involving the generic clone function
+# Run tests filtering by a specific keyword
 uv run pytest tests/ -v -s -k "test_clone"
 ```
 
-> ⚠️ **Note:** Full pipeline tests make real LLM API calls and may take a few minutes. Generated outputs from passing tests might be placed inside output directories. 
+> ⚠️ **Note:** E2E pipeline tests make real LLM API calls and may take 1-2 minutes per test. Test generated `AGENTS.md` and markdown outputs are persisted in `tests/output/<repo_name>/` for manual inspection. 
 
 ---
 

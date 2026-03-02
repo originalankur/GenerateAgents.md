@@ -43,6 +43,15 @@ EXPECTED_AGENTS_SECTIONS = [
     "Common Patterns",
 ]
 
+EXPECTED_STRICT_SECTIONS = [
+    "Code Style & Strict Rules",
+    "Anti-Patterns",
+    "Security",
+    "Lessons Learned",
+    "Repo Quirks",
+    "Execution Commands",
+]
+
 
 @pytest.mark.e2e
 @pytest.mark.timeout(600)
@@ -122,3 +131,50 @@ class TestFullPipeline:
         print(f"\n📂 Output saved to: {repo_output_dir}")
         print(f"   - AGENTS.md ({len(saved_agents)} chars)")
         print(f"   - CONVENTIONS.md ({len(conventions_md)} chars)")
+
+    def test_full_pipeline_strict_style(
+        self, repo_url, repo_name, lm, output_dir
+    ):
+        """Test the complete pipeline using the STRICT style instead of comprehensive."""
+        # 1. Clone and load
+        with tempfile.TemporaryDirectory() as clone_dir:
+            clone_repo(repo_url, clone_dir)
+            source_tree = load_source_tree(clone_dir)
+            if 'CONTENT' in source_tree:
+                del source_tree['CONTENT']
+
+        # 2. Extract conventions (strict mode)
+        extractor = CodebaseConventionExtractor(lm=lm, style="strict")
+        conventions_result = extractor(source_tree=source_tree)
+
+        conventions_md = conventions_result.markdown_document
+        assert conventions_md is not None, "Conventions markdown should not be None"
+        assert len(conventions_md) > 100, f"Conventions markdown too short ({len(conventions_md)} chars)"
+
+        # 3. Generate AGENTS.md (strict mode)
+        agents_creator = AgentsMdCreator(style="strict")
+        agents_result = agents_creator(
+            conventions_markdown=conventions_md,
+            repository_name=repo_name,
+        )
+        agents_content = agents_result.agents_md_content
+        assert agents_content is not None, "AGENTS.md content should not be None"
+        assert len(agents_content) > 50, "AGENTS.md content too short"
+
+        # Verify AGENTS.md has expected sections for strict mode
+        for section in EXPECTED_STRICT_SECTIONS:
+            assert section.lower() in agents_content.lower(), (
+                f"AGENTS.md missing expected strict section: '{section}'"
+            )
+
+        # 4. Strict Markdown Compliance Assertion
+        fence_count = agents_content.count("```")
+        assert fence_count % 2 == 0, (
+            f"AGENTS.md has an unclosed code block! Found {fence_count} triple-backticks."
+        )
+
+        # 5. Save output to disk
+        save_agents_to_disk(repo_name + "_strict", agents_content, base_dir=output_dir)
+        
+        saved_path = os.path.join(output_dir, repo_name + "_strict", "AGENTS.md")
+        assert os.path.exists(saved_path)
