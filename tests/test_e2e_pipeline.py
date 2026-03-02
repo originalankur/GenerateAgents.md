@@ -45,10 +45,10 @@ EXPECTED_AGENTS_SECTIONS = [
 
 EXPECTED_STRICT_SECTIONS = [
     "Code Style & Strict Rules",
-    "Anti-Patterns",
-    "Security",
-    "Lessons Learned",
-    "Repo Quirks",
+    "Anti-Patterns & Restrictions",
+    "Security & Compliance",
+    "Lessons Learned (Past Failures)",
+    "Repository Quirks & Gotchas",
     "Execution Commands",
 ]
 
