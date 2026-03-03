@@ -185,6 +185,7 @@ dependencies = [
     { name = "litellm" },
     { name = "markdown-analysis" },
     { name = "python-dotenv" },
+    { name = "tqdm" },
 ]
 
 [package.optional-dependencies]
@@ -202,6 +203,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.0" },
     { name = "python-dotenv", specifier = ">=1.0" },
+    { name = "tqdm", specifier = ">=4.67.3" },
 ]
 provides-extras = ["dev"]
 

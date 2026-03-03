@@ -17,7 +17,7 @@ def test_parse_arguments_defaults():
         assert args.local_repo_pos == '/tmp/repo'
         assert args.github_repository is None
         assert args.style == 'comprehensive'
-        assert args.analyze_git_history is False
+        assert args.analyze_git_history is None
         assert args.model is None
         assert args.api_base is None
         assert args.api_key is None
@@ -37,7 +37,7 @@ def test_parse_arguments_flags():
         args = parse_arguments()
         assert args.github_repository == 'https://github.com/foo/bar'
         assert args.style == 'strict'
-        assert args.analyze_git_history is True
+        assert args.analyze_git_history == 500
         assert args.model == 'openai'
         assert args.api_base == 'http://localhost:11434'
         assert args.api_key == 'secret-key'

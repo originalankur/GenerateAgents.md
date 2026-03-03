@@ -45,8 +45,10 @@ def parse_arguments():
     )
     parser.add_argument(
         "--analyze-git-history",
-        action="store_true",
-        help="Analyze recent reverted commits to automatically deduce anti-patterns and lessons learned.",
+        nargs="?",
+        const=500,
+        type=int,
+        help="Analyze recent reverted commits to automatically deduce anti-patterns and lessons learned. You can optionally specify the number of commits to fetch (default: 500).",
     )
     add_model_argument(parser)
     return parser.parse_args()
@@ -80,12 +82,12 @@ def resolve_repository_target(args):
 
 
 @contextlib.contextmanager
-def get_repository_context(repo_url=None, local_path=None):
+def get_repository_context(repo_url=None, local_path=None, git_history_limit=None):
     """Provides a context manager that either clones a repo or yields a local path."""
     if repo_url:
         with tempfile.TemporaryDirectory() as temp_repo_dir:
             try:
-                clone_repo(repo_url, temp_repo_dir)
+                clone_repo(repo_url, temp_repo_dir, git_history_limit)
             except Exception as e:
                 raise RuntimeError("Failed to clone repository.") from e
             yield temp_repo_dir
@@ -116,7 +118,7 @@ def setup_language_model(model_arg, api_base=None, api_key=None):
     return lm
 
 
-def run_agents_md_pipeline(repo_dir, repo_name, lm, style="comprehensive", analyze_git_history=False):
+def run_agents_md_pipeline(repo_dir, repo_name, lm, style="comprehensive", analyze_git_history=None):
     """Executes the core pipeline to generate the AGENTS.md document."""
     # Load source tree
     logging.info(f"Loading source tree from {repo_dir}...")
@@ -126,8 +128,8 @@ def run_agents_md_pipeline(repo_dir, repo_name, lm, style="comprehensive", analy
 
     git_anti_patterns = ""
     git_lessons = ""
-    if analyze_git_history:
-        git_history = extract_reverted_commits(repo_dir)
+    if analyze_git_history is not None:
+        git_history = extract_reverted_commits(repo_dir, limit=analyze_git_history)
         if git_history:
             logging.info("\n[0/3] Extracting lessons learned from git history using main LLM...")
             anti_pattern_extractor = AntiPatternExtractor()
@@ -138,7 +140,8 @@ def run_agents_md_pipeline(repo_dir, repo_name, lm, style="comprehensive", analy
             logging.info(f"Lessons Learned:\n{git_lessons}")
             logging.info(f"Anti-Patterns:\n{git_anti_patterns}")
         else:
-            logging.info("No reverted git history found to analyze.")
+            logging.info("No reverted git history found or selected. Exiting early as requested.")
+            sys.exit(0)
 
     # Step 1: Extract Conventions
     logging.info(f"\n[1/3] Scanning codebase tree for '{repo_name}' using RLM (style: {style})...")
@@ -147,7 +150,7 @@ def run_agents_md_pipeline(repo_dir, repo_name, lm, style="comprehensive", analy
     
     conventions_md = conventions_result.markdown_document
     # Append git insights to the conventions markdown so it flows into AGENTS.md
-    if analyze_git_history and (git_anti_patterns or git_lessons):
+    if analyze_git_history is not None and (git_anti_patterns or git_lessons):
         conventions_md += f"\n\n## Git History Insights\n\n### Lessons Learned\n{git_lessons}\n\n### Anti-Patterns\n{git_anti_patterns}\n"
 
     logging.info("\n--- Extracted Conventions Document ---")
@@ -179,7 +182,7 @@ def main():
         repo_url, local_path, repo_name = resolve_repository_target(args)
         lm = setup_language_model(args.model, api_base=getattr(args, 'api_base', None), api_key=getattr(args, 'api_key', None))
 
-        with get_repository_context(repo_url=repo_url, local_path=local_path) as repo_dir:
+        with get_repository_context(repo_url=repo_url, local_path=local_path, git_history_limit=args.analyze_git_history) as repo_dir:
             run_agents_md_pipeline(repo_dir, repo_name, lm, style=args.style, analyze_git_history=args.analyze_git_history)
 
     except (FileNotFoundError, RuntimeError) as e:

@@ -68,11 +68,12 @@ def load_source_tree(root_dir: str) -> dict[str, TreeType]:
                 
     return tree
 
-def clone_repo(repo_url: str, dest_dir: str):
+def clone_repo(repo_url: str, dest_dir: str, depth: int = None):
     """Clone a public GitHub repo to a destination directory."""
     logging.info(f"Cloning {repo_url} into {dest_dir}...")
     try:
-        subprocess.run(["git", "clone", "--depth", "1", repo_url, dest_dir], check=True, capture_output=True, text=True)
+        depth_param = str(max(depth, 1)) if depth is not None else "1"
+        subprocess.run(["git", "clone", "--depth", depth_param, repo_url, dest_dir], check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
         logging.error(f"Failed to clone repository: {e.stderr}")
         raise
@@ -80,21 +81,103 @@ def clone_repo(repo_url: str, dest_dir: str):
         logging.error("Git is not installed or not found in system path.")
         raise
 
-def extract_reverted_commits(repo_dir: str, limit: int = 20) -> str:
-    """Extracts git history for reverting commits to deduce past failures."""
-    logging.info(f"Analyzing git history for reverted commits (limit: {limit})...")
+def parse_selection(selection: str, max_val: int) -> list[int]:
+    selection = selection.lower().strip()
+    if selection == "all":
+        return list(range(1, max_val + 1))
+    
+    sel = set()
+    for part in re.split(r",|\s+", selection):
+        part = part.strip()
+        if not part:
+            continue
+        if ".." in part:
+            start_str, end_str = part.split("..", 1)
+        elif "-" in part:
+            start_str, end_str = part.split("-", 1)
+        else:
+            try:
+                sel.add(int(part))
+            except ValueError:
+                pass
+            continue
+        try:
+            start, end = int(start_str), int(end_str)
+            if start <= end:
+                sel.update(range(start, end + 1))
+        except ValueError:
+            pass
+    return sorted([i for i in sel if 1 <= i <= max_val])
+
+def extract_reverted_commits(repo_dir: str, limit: int = 500) -> str:
+    """Extracts git history for reverting commits interactively."""
+    logging.info(f"Finding recent reverted commits (limit: {limit})...")
     try:
-        # Run git log fetching the diffs of commits mentioning 'revert'
+        # Run git log fetching just the hashes and subjects
         result = subprocess.run(
-            ["git", "log", f"-n {limit}", "--grep=revert", "-i", "--patch"],
+            ["git", "log", f"-n {limit}", "--grep=revert", "-i", "--format=%H %s"],
             cwd=repo_dir,
             check=True,
             capture_output=True,
             text=True
         )
         
-        diff_text = result.stdout
+        lines = [line.strip() for line in result.stdout.split('\n') if line.strip()]
         
+        if not lines:
+            logging.info("No reverted commits found in recent history.")
+            return ""
+
+        print("\n--- Found the following revert commits ---")
+        commits = []
+        for i, line in enumerate(lines, 1):
+            hash_val, subject = line.split(" ", 1)
+            commits.append(hash_val)
+            print(f"[{i}] {hash_val[:7]} - {subject}")
+
+        print("\nSelect the commits you want to analyze.")
+        print("Options: 'all', '1,2,3', '1-5', '1..5', etc.")
+        
+        try:
+            selection_input = input("Enter selection [all]: ").strip()
+        except Exception:
+            selection_input = "all"
+            
+        if not selection_input:
+            selection_input = "all"
+
+        selected_indices = parse_selection(selection_input, len(commits))
+        
+        if not selected_indices:
+            logging.info("No valid commits selected. Skipping git history analysis.")
+            return ""
+
+        selected_hashes = [commits[i - 1] for i in selected_indices]
+        
+        # Try to import tqdm for progress bar
+        try:
+            from tqdm import tqdm
+            iterable = tqdm(selected_hashes, desc="Fetching commit diffs")
+        except ImportError:
+            iterable = selected_hashes
+            logging.info(f"Fetching diffs for {len(selected_hashes)} commits...")
+
+        diffs = []
+        for hash_val in iterable:
+            try:
+                patch_result = subprocess.run(
+                    ["git", "show", "--patch", hash_val],
+                    cwd=repo_dir,
+                    check=True,
+                    capture_output=True,
+                    text=True
+                )
+                diffs.append(patch_result.stdout)
+            except subprocess.CalledProcessError as e:
+                logging.warning(f"Failed to fetch patch for {hash_val}: {e.stderr}")
+
+        diff_text = "\n".join(diffs)
+
         # Check context length safely
         if len(diff_text) > 100000:
             logging.warning(
@@ -102,10 +185,6 @@ def extract_reverted_commits(repo_dir: str, limit: int = 20) -> str:
                 "Truncating to 100,000 characters to prevent context window overflow."
             )
             diff_text = diff_text[:100000] + "\n... [TRUNCATED DUE TO LENGTH]"
-            
-        if not diff_text.strip():
-            logging.info("No reverted commits found in recent history.")
-            return ""
             
         return diff_text
         
