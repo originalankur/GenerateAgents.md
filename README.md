@@ -74,12 +74,14 @@ uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask
 ```
 
 **2. Analyze Git History**
-Automatically deduce anti-patterns from recently reverted commits. This powerful feature uses `git log --grep=revert` to inspect the last 20 reverted commits in the repository. It feeds the diffs into a dedicated DSPy module to extract explicit "Lessons Learned" and "Anti-Patterns", ensuring your AI agent avoids making the exact same mistakes previous human developers made.
+Automatically deduce anti-patterns from recently reverted commits. This powerful feature uses `git log --grep=revert` to inspect reverted commits in the repository (by default, looking back through the last 500 commits). It presents an **interactive prompt** where you can select exactly which reverting commits you want to analyze (e.g. `1,2,3` or `1-5`). It then feeds the diff patches of those selected commits into a dedicated DSPy module to extract explicit "Lessons Learned" and "Anti-Patterns", ensuring your AI agent avoids making the exact same mistakes previous human developers made.
 
 ```bash
-# Works on both local and cloned GitHub repositories
+# Works on both local and cloned GitHub repositories (defaults to scanning 500 commits)
 uv run autogenerateagentsmd /path/to/local/repo --analyze-git-history
-uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --style strict --analyze-git-history
+
+# Specify a custom limit for how far back to look for reverted commits (e.g., 1000)
+uv run autogenerateagentsmd --github-repository https://github.com/pallets/flask --style strict --analyze-git-history 1000
 ```
 
 ### 4. Find Your Output
